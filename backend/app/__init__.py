@@ -32,6 +32,17 @@ def create_app(test_config=None):
     else:
         raise ValueError(f"Unknown environment: {env}")
 
+    # Log the database URI for debugging (safely masked)
+    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI')
+    if db_uri:
+        from urllib.parse import urlparse
+        try:
+            parsed = urlparse(db_uri)
+            masked_uri = f"{parsed.scheme}://****:****@{parsed.hostname}:{parsed.port}{parsed.path}"
+            app.logger.info(f"Using database: {masked_uri}")
+        except Exception:
+            app.logger.info("Using database: [malformed URI]")
+
     db.init_app(app)
     mail.init_app(app)
     
