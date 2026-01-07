@@ -39,9 +39,24 @@ def create_app(test_config=None):
         try:
             parsed = urlparse(db_uri)
             masked_uri = f"{parsed.scheme}://****:****@{parsed.hostname}:{parsed.port}{parsed.path}"
+            # Using print as well because it's more reliable in some Render log views
+            print(f"DEBUG: Using database: {masked_uri}")
             app.logger.info(f"Using database: {masked_uri}")
         except Exception:
+            print("DEBUG: Using database: [malformed URI]")
             app.logger.info("Using database: [malformed URI]")
+
+    @app.route("/")
+    def index():
+        return jsonify({
+            "status": "online",
+            "message": "Quizzy API is live",
+            "environment": env
+        }), 200
+
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "healthy"}), 200
 
     db.init_app(app)
     mail.init_app(app)
