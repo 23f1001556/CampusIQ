@@ -6,12 +6,15 @@ load_dotenv()
 def fix_database_uri(uri):
     if not uri:
         return uri
-    # Strip quotes if they were included in the env variable
     uri = uri.strip("'").strip('"')
-    # Render provides DATABASE_URL starting with postgres:// but SQLAlchemy requires postgresql://
     if uri.startswith("postgres://"):
         uri = uri.replace("postgres://", "postgresql://", 1)
     return uri
+
+def get_cors_origins():
+    raw = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+    origins = raw.split(",")
+    return [o.strip() if o.strip().startswith("http") else f"https://{o.strip()}" for o in origins]
 
 class BaseConfig:
     SQLALCHEMY_DATABASE_URI = fix_database_uri(os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL", "sqlite:///site.db")))
@@ -30,24 +33,17 @@ class BaseConfig:
     RESULT_BACKEND = os.getenv("RESULT_BACKEND", "redis://localhost:6379/0")
     
     # CORS
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+    CORS_ORIGINS = get_cors_origins()
 
 class DevelopmentConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = fix_database_uri(os.getenv("POSTGRESDB_URL"))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     #mailing
-    MAIL_SERVER = 'smtp.gmail.com'
-    MAIL_PORT = 587
-    MAIL_USE_TLS = True
-    MAIL_USERNAME = os.getenv("MAIL_USERNAME")
-    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
-    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER","sidhant")
-    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER","sidhant")
     MAIL_DEBUG = False
-    
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+    CORS_ORIGINS = get_cors_origins()
 
 class ProductionConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = fix_database_uri(os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL")))
     DEBUG = False
+    CORS_ORIGINS = get_cors_origins()
