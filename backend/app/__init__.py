@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from app.configs.extensions import db, mail
 from app.configs.config import DevelopmentConfig, ProductionConfig
