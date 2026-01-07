@@ -1,0 +1,65 @@
+import os
+from flask import Flask
+from flask_cors import CORS
+from app.configs.extensions import db, mail
+from app.configs.config import DevelopmentConfig, ProductionConfig
+from app.models import User, Scores, Quiz, Chapter, Subject, Question
+from app.models.Ai.history import AIHistory
+from app.models.study_material import StudyMaterial
+from app.models.mock_quiz import MockQuiz, MockQuestion, MockAttempt
+
+from app.auth.routes import auth_bp
+from app.route.users.routes import users_bp
+from app.route.subjects.routes import subjects_bp
+from app.route.chapters.routes import chapters_bp
+from app.route.quiz.routes import quiz_bp
+
+
+def create_app(test_config=None):
+    app = Flask(__name__)
+    # CORS(app) moved down after config loading
+
+    env = os.getenv("DEV_ENV","testing")
+
+    if test_config:
+        app.config.update(test_config)
+    elif env == "production":
+        app.config.from_object("app.configs.config.ProductionConfig")
+    elif env == "development":
+        app.config.from_object("app.configs.config.DevelopmentConfig")
+    elif env == "testing":
+        app.config.from_object("app.configs.config.BaseConfig")
+    else:
+        raise ValueError(f"Unknown environment: {env}")
+
+    db.init_app(app)
+    mail.init_app(app)
+    
+    # Init CORS with config
+    CORS(app, resources={r"/*": {"origins": app.config.get("CORS_ORIGINS")}}, supports_credentials=True)
+    
+    from app.celery.config import celery_init_app
+    celery_init_app(app)
+    
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(users_bp)
+    app.register_blueprint(subjects_bp)
+    app.register_blueprint(chapters_bp)
+    app.register_blueprint(quiz_bp)
+    
+    from app.route.test_paper.routes import test_paper_bp
+    app.register_blueprint(test_paper_bp)
+
+    from app.route.ai.routes import ai_bp
+    app.register_blueprint(ai_bp)
+
+    from app.route.mock.routes import mock_bp
+    app.register_blueprint(mock_bp)
+
+    from app.route.admin.routes import admin_bp
+    app.register_blueprint(admin_bp)
+
+    with app.app_context():
+        db.create_all() 
+
+    return app

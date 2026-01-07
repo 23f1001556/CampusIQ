@@ -1,0 +1,155 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import Login from '../features/auth/views/Login.vue'
+import Register from '../features/auth/views/Register.vue'
+
+import LandingPage from '../features/landing/views/LandingPage.vue'
+import DemoView from '../features/landing/views/DemoView.vue'
+
+const routes = [
+  {
+    path: '/',
+    name: 'Landing',
+    component: LandingPage
+  },
+  {
+    path: '/demo',
+    name: 'Demo',
+    component: DemoView
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register
+  },
+  {
+    path: '/dashboard',
+    component: () => import('../layouts/DashboardLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+        {
+            path: 'admin',
+            name: 'AdminDashboard',
+            component: () => import('../features/admin/views/AdminDashboard.vue'),
+            meta: { requiresAdmin: true }
+        },
+        {
+            path: '',
+            name: 'Overview',
+            component: () => import('../features/dashboard/views/DashboardHome.vue')
+        },
+        {
+            path: 'profile',
+            name: 'Profile',
+            component: () => import('../features/profile/views/Profile.vue')
+        },
+
+        {
+            path: 'subjects',
+            name: 'Subjects',
+            component: () => import('../features/subjects/views/SubjectList.vue')
+        },
+        {
+            path: 'subjects/:id',
+            name: 'SubjectDetail',
+            component: () => import('../features/subjects/views/SubjectDetail.vue')
+        },
+        {
+            path: 'mock-quizzes',
+            name: 'MockList',
+            component: () => import('../features/mock-quizzes/views/MockList.vue')
+        },
+        {
+            path: 'mock-attempt/:id',
+            name: 'MockAttempt',
+            component: () => import('../features/mock-quizzes/views/MockAttempt.vue'),
+            meta: { fullScreen: true }
+        },
+        {
+            path: 'mock-result/:id',
+            name: 'MockResult',
+            component: () => import('../features/mock-quizzes/views/MockResult.vue')
+        },
+        {
+            path: 'subjects/:subjectId/chapters/:chapterId/quizzes',
+            name: 'ChapterQuizList',
+            component: () => import('../features/subjects/views/ChapterQuizList.vue')
+        },
+        {
+            path: 'quiz/result/:id',
+            name: 'QuizResult',
+            component: () => import('../features/subjects/views/QuizResult.vue')
+        },
+        {
+            path: 'quiz/:id/attempt',
+            name: 'QuizAttempt',
+            component: () => import('../features/subjects/views/QuizAttempt.vue')
+        },
+        {
+            path: 'leaderboard',
+            name: 'Leaderboard',
+            component: () => import('../features/leaderboard/views/Leaderboard.vue')
+        },
+        {
+            path: 'ai-hub',
+            name: 'AIHub',
+            component: () => import('../features/ai-analysis/views/AIHub.vue')
+        }
+    ]
+  },
+  {
+    path: '/verify-email/:token',
+    name: 'VerifyEmail',
+    component: () => import('../features/auth/views/VerifyEmail.vue')
+  },
+  {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('../features/auth/views/ForgotPassword.vue')
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token')
+  
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!token) {
+      next('/login')
+    } else {
+      // Check for admin requirement
+      if (to.matched.some(record => record.meta.requiresAdmin)) {
+        try {
+          const user = JSON.parse(localStorage.getItem('user'))
+          if (user && user.isadmin) {
+            next()
+          } else {
+             // Redirect to dashboard if not admin
+             next('/dashboard')
+          }
+        } catch (e) {
+          next('/login')
+        }
+      } else {
+        next()
+      }
+    }
+  } else {
+    // Prevent logged-in users from visiting landing, demo, login, or register
+    if (token && (to.path === '/' || to.path === '/demo' || to.path === '/login' || to.path === '/register')) {
+      next('/dashboard')
+    } else {
+      next()
+    }
+  }
+})
+
+export default router
