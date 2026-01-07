@@ -8,6 +8,8 @@ const api = axios.create({
   },
 });
 
+console.log('API Base URL:', api.defaults.baseURL || 'DEFAULT (Origin)');
+
 // Add a request interceptor to attach the auth token if available
 api.interceptors.request.use(
   (config) => {
