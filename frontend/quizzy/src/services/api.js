@@ -1,14 +1,13 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL:
-    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "",
+  baseURL: "https://quizv2-wq0n.onrender.com",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-console.log('API Base URL:', api.defaults.baseURL || 'DEFAULT (Origin)');
+console.log("API Base URL (Hardcoded):", api.defaults.baseURL);
 
 // Add a request interceptor to attach the auth token if available
 api.interceptors.request.use(
