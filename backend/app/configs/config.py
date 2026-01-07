@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class BaseConfig:
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///site.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL", "sqlite:///site.db"))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY")
     MAIL_SERVER = 'smtp.gmail.com'
@@ -39,4 +39,5 @@ class DevelopmentConfig(BaseConfig):
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 
 class ProductionConfig(BaseConfig):
-    pass
+    SQLALCHEMY_DATABASE_URI = os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL"))
+    DEBUG = False
