@@ -19,7 +19,7 @@ def create_app(test_config=None):
     app = Flask(__name__)
     # CORS(app) moved down after config loading
 
-    env = os.getenv("DEV_ENV","testing")
+    env = os.getenv("DEV_ENV","development")
 
     if test_config:
         app.config.update(test_config)
