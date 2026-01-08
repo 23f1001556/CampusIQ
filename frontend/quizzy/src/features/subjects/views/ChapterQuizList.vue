@@ -110,7 +110,7 @@
                 <h3>No study materials found</h3>
                 <p>Try searching differently or add new materials.</p>
             </div>
-            
+
             <div v-else class="materials-list">
                 <div v-for="mat in filteredMaterials" :key="mat.id" class="mat-card">
                     <div class="mat-header" @click="toggleMaterial(mat.id)">
@@ -120,33 +120,32 @@
                             <span v-else-if="mat.material_type === 'link'">🔗</span>
                             <span v-else>📝</span>
                         </div>
-                        
+
                         <div class="mat-title-group">
                             <h4>{{ mat.title }}</h4>
                             <span class="mat-quiz-ref" v-if="mat.quiz_name">Topic: {{ mat.quiz_name }}</span>
                             <span class="mat-quiz-ref" v-if="mat.material_type === 'link'">{{ mat.link_url }}</span>
                         </div>
-                        
+
                         <div class="mat-actions-row">
-                             <!-- Action Button -->
-                             <button v-if="mat.material_type === 'pdf'" 
-                                class="btn-outline btn-sm action-btn" 
+                            <!-- Action Button -->
+                            <button v-if="mat.material_type === 'pdf'" class="btn-outline btn-sm action-btn"
                                 @click.stop="downloadFile(mat.file_path)">
                                 Download
-                             </button>
-                             <button v-else-if="mat.material_type === 'link'" 
-                                class="btn-outline btn-sm action-btn" 
+                            </button>
+                            <button v-else-if="mat.material_type === 'link'" class="btn-outline btn-sm action-btn"
                                 @click.stop="openLink(mat.link_url)">
                                 Open
-                             </button>
+                            </button>
 
                             <span class="mat-date">{{ mat.created_at }}</span>
                             <button class="delete-icon" @click.stop="confirmDeleteMaterial(mat)">🗑️</button>
                         </div>
                     </div>
-                    
+
                     <!-- Content view for Text type only -->
-                    <div v-if="currMatId === mat.id && (!mat.material_type || mat.material_type === 'text')" class="mat-content markdown-body">
+                    <div v-if="currMatId === mat.id && (!mat.material_type || mat.material_type === 'text')"
+                        class="mat-content markdown-body">
                         {{ mat.content }}
                     </div>
                 </div>
@@ -264,35 +263,40 @@
                     <h3>Add Study Material</h3>
                     <button class="close-btn" @click="closeAddMatModal">×</button>
                 </div>
-                
+
                 <div class="tabs minimalist-tabs">
-                    <button :class="{ active: matForm.type === 'text' }" @click="matForm.type = 'text'">Text Note</button>
-                    <button :class="{ active: matForm.type === 'pdf' }" @click="matForm.type = 'pdf'">Upload PDF</button>
-                    <button :class="{ active: matForm.type === 'link' }" @click="matForm.type = 'link'">Web Link</button>
+                    <button :class="{ active: matForm.type === 'text' }" @click="matForm.type = 'text'">Text
+                        Note</button>
+                    <button :class="{ active: matForm.type === 'pdf' }" @click="matForm.type = 'pdf'">Upload
+                        PDF</button>
+                    <button :class="{ active: matForm.type === 'link' }" @click="matForm.type = 'link'">Web
+                        Link</button>
                 </div>
-                
+
                 <form @submit.prevent="handleAddMaterial">
                     <div class="form-group">
                         <label>Title</label>
                         <input v-model="matForm.title" type="text" required placeholder="Material Title"
                             class="modern-input">
                     </div>
-                    
+
                     <div v-if="matForm.type === 'text'" class="form-group">
-                         <label>Content (Markdown)</label>
-                         <textarea v-model="matForm.content" placeholder="Enter notes..." class="modern-textarea"></textarea>
+                        <label>Content (Markdown)</label>
+                        <textarea v-model="matForm.content" placeholder="Enter notes..."
+                            class="modern-textarea"></textarea>
                     </div>
-                    
+
                     <div v-if="matForm.type === 'pdf'" class="form-group">
-                         <label>Select PDF</label>
-                         <input type="file" accept="application/pdf" @change="handleMatFileChange" class="modern-input">
+                        <label>Select PDF</label>
+                        <input type="file" accept="application/pdf" @change="handleMatFileChange" class="modern-input">
                     </div>
-                    
+
                     <div v-if="matForm.type === 'link'" class="form-group">
-                         <label>URL</label>
-                         <input v-model="matForm.link_url" type="url" placeholder="https://example.com" class="modern-input">
+                        <label>URL</label>
+                        <input v-model="matForm.link_url" type="url" placeholder="https://example.com"
+                            class="modern-input">
                     </div>
-                    
+
                     <div class="modal-footer">
                         <button type="button" class="btn-text" @click="closeAddMatModal">Cancel</button>
                         <button type="submit" class="btn-primary" :disabled="uploadingMat">
@@ -419,7 +423,7 @@ const confirmDeleteMaterial = (mat) => {
             return
         }
         await api.delete(`/ai/delete_study_material/${mat.id}`, {
-            data: { password: confirmPassword.value } 
+            data: { password: confirmPassword.value }
         })
         fetchMaterials()
     }
@@ -544,7 +548,7 @@ const handleAddMaterial = async () => {
         alert("Title is required")
         return
     }
-    
+
     uploadingMat.value = true
     try {
         const formData = new FormData()
@@ -552,24 +556,24 @@ const handleAddMaterial = async () => {
         formData.append('subject_id', subjectId)
         formData.append('chapter_id', chapterId)
         formData.append('material_type', matForm.value.type)
-        
+
         if (matForm.value.type === 'text') {
             formData.append('content', matForm.value.content)
         } else if (matForm.value.type === 'link') {
             formData.append('link_url', matForm.value.link_url)
         } else if (matForm.value.type === 'pdf') {
-             if (!matForm.value.file) {
-                 alert("Please select a PDF file")
-                 uploadingMat.value = false
-                 return
-             }
-             formData.append('file', matForm.value.file)
+            if (!matForm.value.file) {
+                alert("Please select a PDF file")
+                uploadingMat.value = false
+                return
+            }
+            formData.append('file', matForm.value.file)
         }
-        
+
         await api.post('/ai/add_study_material', formData, {
-             headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { 'Content-Type': 'multipart/form-data' }
         })
-        
+
         await fetchMaterials()
         closeAddMatModal()
         alert('Material added successfully')
@@ -585,20 +589,20 @@ const downloadFile = (filename) => {
     // or generic download. 
     // Wait, I removed the Lecture route in my head but code still has it.
     // I should probably move download route to `ai_bp` or keep `lecture_bp`.
-        // So YES, I can reuse `/lectures/download/<filename>` IF I don't delete `lecture_bp`.
+    // So YES, I can reuse `/lectures/download/<filename>` IF I don't delete `lecture_bp`.
     // Or I can add a `download` route to `ai_bp`.
     // To be safe, I'll use `/lectures/download/`    // Simpler: use api.get with blob response type and save.
-    
+
     api.get(`/ai/download/${filename}`, { responseType: 'blob' })
-    .then(response => {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', filename.substring(37)); 
-        document.body.appendChild(link);
-        link.click();
-    })
-    .catch(() => alert('Failed to download file'))
+        .then(response => {
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename.substring(37));
+            document.body.appendChild(link);
+            link.click();
+        })
+        .catch(() => alert('Failed to download file'))
 }
 
 const openLink = (url) => {
@@ -654,6 +658,10 @@ const confirmStartQuiz = () => {
 }
 
 const confirmDelete = (quiz) => {
+    // Add double browser confirmation before showing the modal acting as final trigger
+    if (!confirm(`Are you sure you want to delete "${quiz.name}"?`)) return
+    if (!confirm(`This action cannot be undone and will delete all questions and results associated with this quiz. Are you ABSOLUTELY sure?`)) return
+
     confirmMessage.value = `Are you sure you want to delete "${quiz.name}"?`
     confirmAction.value = async () => {
         await api.delete(`/quiz/deletequiz/${quiz.id}`)
@@ -1302,7 +1310,8 @@ onMounted(() => {
 
 <style scoped>
 /* Appended Lecture/Material Styles */
-.lectures-list, .materials-list {
+.lectures-list,
+.materials-list {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -1397,5 +1406,40 @@ onMounted(() => {
     color: var(--primary-color);
     border-bottom-color: var(--primary-color);
     font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .search-bar-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .search-input,
+    .search-select,
+    .btn-primary {
+        width: 100%;
+        max-width: none;
+    }
+
+    .mat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .mat-actions-row {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+    }
+
+    .search-select {
+        display: none;
+    }
+
+    .breadcrumb {
+        display: none;
+    }
 }
 </style>

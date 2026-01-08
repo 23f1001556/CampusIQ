@@ -231,6 +231,7 @@ const handleSubmit = async () => {
 
 const confirmDelete = async (chapter) => {
     if (!confirm(`Are you sure you want to delete "${chapter.name}"?`)) return
+    if (!confirm(`This action cannot be undone and will delete all quizzes inside this chapter. Are you absolutely sure?`)) return
 
     try {
         await api.delete(`/chapters/deletechapter/${chapter.id}`)
@@ -684,5 +685,22 @@ onMounted(() => {
     cursor: pointer;
     font-weight: 500;
     padding: 0.75rem 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .header-actions {
+        flex-direction: column-reverse;
+        width: 100%;
+        align-items: stretch;
+    }
+
+    .search-wrapper {
+        width: 100%;
+    }
+
+    .btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
 }
 </style>

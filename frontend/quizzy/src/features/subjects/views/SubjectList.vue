@@ -205,6 +205,7 @@ const handleSubmit = async () => {
 
 const confirmDelete = async (subject) => {
     if (!confirm(`Are you sure you want to delete "${subject.name}"?`)) return
+    if (!confirm(`This action cannot be undone and will delete all chapters and quizzes inside. Are you absolutely sure?`)) return
 
     try {
         await api.delete(`/subjects/deletesubject/${subject.id}`)
