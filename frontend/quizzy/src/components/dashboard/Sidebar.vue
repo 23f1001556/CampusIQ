@@ -338,6 +338,7 @@ const links = computed(() => {
 }
 
 /* Mobile Styles */
+/* Mobile Styles */
 .sidebar.mobile {
     position: fixed;
     border-right: none;
@@ -346,9 +347,23 @@ const links = computed(() => {
     bottom: 0;
     transform: translateX(-100%);
     box-shadow: 8px 0 32px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    /* Ensure high z-index on mobile */
+    width: 280px;
+    /* Slightly wider on mobile for touch targets */
 }
 
 .sidebar.mobile.open {
     transform: translateX(0);
+}
+
+/* Ensure Logo is visible on mobile inside sidebar */
+.sidebar.mobile .logo-container {
+    display: flex;
+}
+
+/* Hide desktop toggle on mobile, parent component should handle hamburger */
+.sidebar.mobile .attr-toggle-btn {
+    display: none;
 }
 </style>
