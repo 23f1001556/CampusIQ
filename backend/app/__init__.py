@@ -3,7 +3,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from app.configs.extensions import db, mail
 from app.configs.config import DevelopmentConfig, ProductionConfig
-from app.models import User, Scores, Quiz, Chapter, Subject, Question
+from app.models import User, Scores, Quiz, Chapter, Subject, Question, InstituteCourse, InstitutePaper, InstituteLecture, AIGeneratedContent, UserResponse
 from app.models.Ai.history import AIHistory
 from app.models.study_material import StudyMaterial
 from app.models.mock_quiz import MockQuiz, MockQuestion, MockAttempt
@@ -82,8 +82,15 @@ def create_app(test_config=None):
     from app.route.mock.routes import mock_bp
     app.register_blueprint(mock_bp)
 
+    from app.route.institute.routes import institute_bp
+    app.register_blueprint(institute_bp, url_prefix='/institute')
+
     from app.route.admin.routes import admin_bp
     app.register_blueprint(admin_bp)
+    
+    # Register Lectures Blueprint (Now consolidated into AI/Study Material)
+    # from app.route.lectures.routes import lectures_bp
+    # app.register_blueprint(lectures_bp)
 
     with app.app_context():
         db.create_all() 

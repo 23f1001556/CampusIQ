@@ -13,8 +13,9 @@
                         <span class="stat-badge">{{ quizzes.length }} Quizzes</span>
                     </div>
                 </div>
-                <div class="header-actions">
-                    <!-- Creation buttons removed -->
+                <div class="header-actions" v-if="isManager">
+                    <button class="btn-outline" @click="openCreateModal">➕ Create Manual Quiz</button>
+                    <button class="btn-primary" @click="navigateToAIHub">🤖 Generate AI Quiz</button>
                 </div>
             </div>
         </div>
@@ -43,12 +44,12 @@
                             <button class="options-btn" @click="toggleMenu(quiz.id)">⋮</button>
                             <div v-if="activeMenu === quiz.id" class="dropdown-menu" v-click-outside="closeMenu">
                                 <button @click="openEditModal(quiz)">Edit Quiz</button>
-                                <button @click="openPublishModal(quiz)" v-if="isAdmin && !quiz.is_published">Publish
+                                <button @click="openPublishModal(quiz)" v-if="isManager && !quiz.is_published">Publish
                                     Quiz</button>
                                 <button @click="confirmUnpublish(quiz)"
-                                    v-if="isAdmin && quiz.is_published">Unpublish</button>
+                                    v-if="isManager && quiz.is_published">Unpublish</button>
                                 <button @click="releaseResults(quiz)"
-                                    v-if="isAdmin && quiz.is_published && !quiz.scores_released">Release
+                                    v-if="isManager && quiz.is_published && !quiz.scores_released">Release
                                     Results</button>
                                 <button class="delete" @click="confirmDelete(quiz)">Delete</button>
                             </div>
@@ -96,31 +97,56 @@
 
         <div v-else class="materials-view">
             <div class="search-bar-container">
-                <input v-model="searchQuery" type="text" placeholder="Search saved materials..." class="search-input">
+                <input v-model="searchQuery" type="text" placeholder="Search materials..." class="search-input">
                 <select v-model="selectedQuizFilter" class="search-select">
-                    <option value="">All Quizzes</option>
+                    <option value="">All Topics</option>
                     <option v-for="name in uniqueQuizNames" :key="name" :value="name">{{ name }}</option>
                 </select>
+                <button v-if="isManager" class="btn-primary" @click="openAddMatModal">Add Material</button>
             </div>
 
             <div v-if="filteredMaterials.length === 0" class="empty-state">
                 <div class="empty-icon">📚</div>
                 <h3>No study materials found</h3>
-                <p>Try a different search term or generate new guides.</p>
+                <p>Try searching differently or add new materials.</p>
             </div>
+            
             <div v-else class="materials-list">
                 <div v-for="mat in filteredMaterials" :key="mat.id" class="mat-card">
                     <div class="mat-header" @click="toggleMaterial(mat.id)">
+                        <!-- Icon based on type -->
+                        <div class="mat-icon">
+                            <span v-if="mat.material_type === 'pdf'">📄</span>
+                            <span v-else-if="mat.material_type === 'link'">🔗</span>
+                            <span v-else>📝</span>
+                        </div>
+                        
                         <div class="mat-title-group">
                             <h4>{{ mat.title }}</h4>
-                            <span class="mat-quiz-ref" v-if="mat.quiz_name">Based on: {{ mat.quiz_name }}</span>
+                            <span class="mat-quiz-ref" v-if="mat.quiz_name">Topic: {{ mat.quiz_name }}</span>
+                            <span class="mat-quiz-ref" v-if="mat.material_type === 'link'">{{ mat.link_url }}</span>
                         </div>
+                        
                         <div class="mat-actions-row">
+                             <!-- Action Button -->
+                             <button v-if="mat.material_type === 'pdf'" 
+                                class="btn-outline btn-sm action-btn" 
+                                @click.stop="downloadFile(mat.file_path)">
+                                Download
+                             </button>
+                             <button v-else-if="mat.material_type === 'link'" 
+                                class="btn-outline btn-sm action-btn" 
+                                @click.stop="openLink(mat.link_url)">
+                                Open
+                             </button>
+
                             <span class="mat-date">{{ mat.created_at }}</span>
                             <button class="delete-icon" @click.stop="confirmDeleteMaterial(mat)">🗑️</button>
                         </div>
                     </div>
-                    <div v-if="currMatId === mat.id" class="mat-content markdown-body">
+                    
+                    <!-- Content view for Text type only -->
+                    <div v-if="currMatId === mat.id && (!mat.material_type || mat.material_type === 'text')" class="mat-content markdown-body">
                         {{ mat.content }}
                     </div>
                 </div>
@@ -230,6 +256,52 @@
                 </form>
             </div>
         </div>
+
+        <!-- Add Material Modal -->
+        <div v-if="showAddMatModal" class="modal-backdrop" @click.self="closeAddMatModal">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>Add Study Material</h3>
+                    <button class="close-btn" @click="closeAddMatModal">×</button>
+                </div>
+                
+                <div class="tabs minimalist-tabs">
+                    <button :class="{ active: matForm.type === 'text' }" @click="matForm.type = 'text'">Text Note</button>
+                    <button :class="{ active: matForm.type === 'pdf' }" @click="matForm.type = 'pdf'">Upload PDF</button>
+                    <button :class="{ active: matForm.type === 'link' }" @click="matForm.type = 'link'">Web Link</button>
+                </div>
+                
+                <form @submit.prevent="handleAddMaterial">
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input v-model="matForm.title" type="text" required placeholder="Material Title"
+                            class="modern-input">
+                    </div>
+                    
+                    <div v-if="matForm.type === 'text'" class="form-group">
+                         <label>Content (Markdown)</label>
+                         <textarea v-model="matForm.content" placeholder="Enter notes..." class="modern-textarea"></textarea>
+                    </div>
+                    
+                    <div v-if="matForm.type === 'pdf'" class="form-group">
+                         <label>Select PDF</label>
+                         <input type="file" accept="application/pdf" @change="handleMatFileChange" class="modern-input">
+                    </div>
+                    
+                    <div v-if="matForm.type === 'link'" class="form-group">
+                         <label>URL</label>
+                         <input v-model="matForm.link_url" type="url" placeholder="https://example.com" class="modern-input">
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn-text" @click="closeAddMatModal">Cancel</button>
+                        <button type="submit" class="btn-primary" :disabled="uploadingMat">
+                            {{ uploadingMat ? 'Adding...' : 'Add Material' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
         <div v-if="showConfirmModal" class="modal-backdrop" @click.self="closeConfirmModal">
             <div class="modal-card warning-card">
                 <div class="warning-icon">⚠️</div>
@@ -280,6 +352,7 @@ const showPublishModal = ref(false)
 const publishForm = ref({ start_time: '', end_time: '' })
 const currentId = ref(null)
 const isAdmin = ref(false)
+const isManager = ref(false)
 const form = ref({ name: '', time_duration: 10, date_of_quiz: '', remarks: '' })
 
 // Confirmation Modal State
@@ -294,6 +367,17 @@ const materials = ref([])
 const currMatId = ref(null)
 const searchQuery = ref('')
 const selectedQuizFilter = ref('')
+
+// Add Material State
+const showAddMatModal = ref(false)
+const matForm = ref({
+    type: 'text', // text, pdf, link
+    title: '',
+    content: '',
+    link_url: '',
+    file: null
+})
+const uploadingMat = ref(false)
 
 import { computed } from 'vue'
 
@@ -325,7 +409,7 @@ const requiresPassword = ref(false)
 const confirmPassword = ref('')
 
 const confirmDeleteMaterial = (mat) => {
-    confirmMessage.value = `Delete study material "${mat.title}"? This action cannot be undone.`
+    confirmMessage.value = `Delete "${mat.title}"? This action cannot be undone.`
     requiresPassword.value = true
     confirmPassword.value = ''
 
@@ -335,7 +419,7 @@ const confirmDeleteMaterial = (mat) => {
             return
         }
         await api.delete(`/ai/delete_study_material/${mat.id}`, {
-            data: { password: confirmPassword.value } // Send password in body
+            data: { password: confirmPassword.value } 
         })
         fetchMaterials()
     }
@@ -415,23 +499,11 @@ const vClickOutside = {
 }
 
 const openCreateModal = () => {
-    isEditing.value = false
-    currentId.value = null
-    form.value = { name: '', time_duration: 10, date_of_quiz: '', remarks: '' }
-    showModal.value = true
+    router.push(`/dashboard/subjects/${subjectId}/chapters/${chapterId}/quizzes/create`)
 }
 
 const openEditModal = (quiz) => {
-    isEditing.value = true
-    currentId.value = quiz.id
-    form.value = {
-        name: quiz.name,
-        time_duration: quiz.time_duration,
-        date_of_quiz: quiz.date_of_quiz || '',
-        remarks: quiz.remarks
-    }
-    showModal.value = true
-    closeMenu()
+    router.push(`/dashboard/subjects/${subjectId}/chapters/${chapterId}/quizzes/${quiz.id}/edit`)
 }
 
 const closeModal = () => {
@@ -445,6 +517,96 @@ const openAIModal = () => {
 
 const closeAIModal = () => {
     showAIModal.value = false
+}
+
+// Add Material Modal Logic
+const openAddMatModal = () => {
+    matForm.value = { type: 'text', title: '', content: '', link_url: '', file: null }
+    showAddMatModal.value = true
+}
+
+const closeAddMatModal = () => {
+    showAddMatModal.value = false
+}
+
+const handleMatFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file && file.type === 'application/pdf') {
+        matForm.value.file = file
+    } else {
+        alert('Please select a PDF file')
+        e.target.value = ''
+    }
+}
+
+const handleAddMaterial = async () => {
+    if (!matForm.value.title) {
+        alert("Title is required")
+        return
+    }
+    
+    uploadingMat.value = true
+    try {
+        const formData = new FormData()
+        formData.append('title', matForm.value.title)
+        formData.append('subject_id', subjectId)
+        formData.append('chapter_id', chapterId)
+        formData.append('material_type', matForm.value.type)
+        
+        if (matForm.value.type === 'text') {
+            formData.append('content', matForm.value.content)
+        } else if (matForm.value.type === 'link') {
+            formData.append('link_url', matForm.value.link_url)
+        } else if (matForm.value.type === 'pdf') {
+             if (!matForm.value.file) {
+                 alert("Please select a PDF file")
+                 uploadingMat.value = false
+                 return
+             }
+             formData.append('file', matForm.value.file)
+        }
+        
+        await api.post('/ai/add_study_material', formData, {
+             headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        
+        await fetchMaterials()
+        closeAddMatModal()
+        alert('Material added successfully')
+    } catch (e) {
+        alert(e.response?.data?.message || 'Failed to add material')
+    } finally {
+        uploadingMat.value = false
+    }
+}
+
+const downloadFile = (filename) => {
+    // Reusing the download endpoint from previous Lecture implementation 
+    // or generic download. 
+    // Wait, I removed the Lecture route in my head but code still has it.
+    // I should probably move download route to `ai_bp` or keep `lecture_bp`.
+        // So YES, I can reuse `/lectures/download/<filename>` IF I don't delete `lecture_bp`.
+    // Or I can add a `download` route to `ai_bp`.
+    // To be safe, I'll use `/lectures/download/`    // Simpler: use api.get with blob response type and save.
+    
+    api.get(`/ai/download/${filename}`, { responseType: 'blob' })
+    .then(response => {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename.substring(37)); 
+        document.body.appendChild(link);
+        link.click();
+    })
+    .catch(() => alert('Failed to download file'))
+}
+
+const openLink = (url) => {
+    if (!url) return
+    if (!url.startsWith('http')) {
+        url = 'https://' + url
+    }
+    window.open(url, '_blank')
 }
 
 const handleSubmit = async () => {
@@ -588,9 +750,18 @@ const executeConfirmAction = async () => {
     }
 }
 
+const evaluateResult = (quiz) => {
+    router.push(`/dashboard/quiz/result/${quiz.id}`)
+}
+
+const navigateToAIHub = () => {
+    router.push(`/dashboard/ai-hub?subjectId=${subjectId}&chapterId=${chapterId}`)
+}
+
 onMounted(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
-    isAdmin.value = !!user.isadmin
+    isAdmin.value = !!user.isadmin || user.role === 'admin'
+    isManager.value = user.role === 'manager' || user.role === 'admin'
     fetchQuizzes()
     fetchChapterDetails()
 })
@@ -1126,5 +1297,105 @@ onMounted(() => {
     height: 30px;
     animation: spin 1s linear infinite;
     margin: 0 auto 1rem;
+}
+</style>
+
+<style scoped>
+/* Appended Lecture/Material Styles */
+.lectures-list, .materials-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Material Card */
+.mat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.mat-header {
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.mat-header:hover {
+    background: var(--bg-accent);
+}
+
+.mat-icon {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.mat-title-group {
+    flex: 1;
+}
+
+.mat-title-group h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.mat-quiz-ref {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: block;
+    margin-top: 0.25rem;
+}
+
+.mat-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.action-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+}
+
+.mat-date {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+.mat-content {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-primary);
+}
+
+/* Minimal Tabs for Add Modal */
+.minimalist-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0;
+}
+
+.minimalist-tabs button {
+    background: none;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.minimalist-tabs button.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    font-weight: 600;
 }
 </style>

@@ -1,13 +1,15 @@
 import axios from "axios";
 
+const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
 const api = axios.create({
-  baseURL: "https://quizv2-wq0n.onrender.com",
+  baseURL: isLocal ? "http://127.0.0.1:5000" : "https://quizv2-wq0n.onrender.com",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-console.log("API Base URL (Hardcoded):", api.defaults.baseURL);
+console.log("API Base URL:", api.defaults.baseURL);
 
 // Add a request interceptor to attach the auth token if available
 api.interceptors.request.use(
@@ -27,8 +29,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Clear local storage and redirect to login if unauthorized
+    if (error.response && [401, 403].includes(error.response.status)) {
+      // Clear local storage and redirect to login if unauthorized or forbidden
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       // Check if we are not already on the login page to avoid loops

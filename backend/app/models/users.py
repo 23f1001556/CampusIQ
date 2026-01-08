@@ -1,4 +1,5 @@
 from flask import current_app
+from datetime import datetime
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.configs.extensions import db
@@ -15,9 +16,17 @@ class User(db.Model):
     qualification = db.Column(db.String(100))
     dob = db.Column(db.Date)
     isadmin = db.Column(db.Boolean, default=False, nullable=False)
+    role = db.Column(db.String(20), default='user', nullable=False) # 'admin', 'manager', 'user'
     is_blocked = db.Column(db.Boolean, default=False, nullable=False)
     is_verified = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     _gemini_api_key = db.Column("gemini_api_key", db.String(500))
+
+    @property
+    def email_domain(self):
+        if not self.email or '@' not in self.email:
+            return None
+        return self.email.split('@')[-1]
 
     # Relationships
     scores = db.relationship("Scores", back_populates="user", cascade="all, delete-orphan")
@@ -67,7 +76,7 @@ class User(db.Model):
 
     @staticmethod
     def format_email(email):
-        return email.lower()
+        return email.strip().lower()
 
     def get_token(self, salt='email-confirm', expires_sec=1800):
         s = Serializer(current_app.config['SECRET_KEY'])

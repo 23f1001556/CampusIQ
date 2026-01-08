@@ -2,16 +2,22 @@ from flask import Blueprint, jsonify, request
 from app.models.users import User
 from app.models.activity import ActivityLog
 from app.configs.extensions import db
-from app.auth.decors import protect_super_admin, login_required, admin_required
+from app.auth.decors import protect_super_admin, login_required, admin_required, staff_required
 
 users_bp = Blueprint("users", __name__, url_prefix="/users")
 
 @users_bp.route("/getusers", methods=["GET"])
 @login_required
-@admin_required
+@staff_required
 def get_users():
     try:
-        users = User.query.all()
+        if request.role == 'manager':
+            # Managers only see students in their domain
+            domain = request.user.email_domain
+            users = User.query.filter(User.email.like(f"%@{domain}"), User.role == 'user').all()
+        else:
+            # Admins see everyone
+            users = User.query.all()
         output = []
         for user in users:
             output.append({
@@ -21,12 +27,15 @@ def get_users():
                 "fullname": user.fullname,
                 "qualification": user.qualification,
                 "dob": user.dob.strftime('%Y-%m-%d') if user.dob else None,
-                "isadmin": user.isadmin or user.id == 1,
+                "isadmin": user.isadmin,
+                "role": user.role,
                 "is_blocked": user.is_blocked if hasattr(user, 'is_blocked') else False
             })
         return jsonify({"users": output}), 200
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error fetching users"}), 500
 
 @users_bp.route("/getuser/<int:id>", methods=["GET"])
 @login_required
@@ -44,22 +53,31 @@ def get_user(id):
             "fullname": user.fullname,
             "qualification": user.qualification,
             "dob": user.dob.strftime('%Y-%m-%d') if user.dob else None,
-            "isadmin": user.isadmin or user.id == 1,
+            "isadmin": user.isadmin,
+            "role": user.role,
             "is_blocked": user.is_blocked if hasattr(user, 'is_blocked') else False
         }
         return jsonify({"user": user_data}), 200
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error fetching user details"}), 500
 
 @users_bp.route("/updateuser/<int:id>", methods=["PUT"])
 @login_required
-@admin_required
+@staff_required
 @protect_super_admin
 def update_user(id):
     try:
         user = User.query.get(id)
         if not user:
             return jsonify({"message": "User not found"}), 404
+            
+        if request.role == 'manager':
+            if user.email_domain != request.user.email_domain:
+                return jsonify({"message": "Access denied: User outside your domain"}), 403
+            if user.role != 'user':
+                return jsonify({"message": "Managers can only update standard users"}), 403
             
         data = request.get_json()
         
@@ -70,11 +88,13 @@ def update_user(id):
         db.session.commit()
         return jsonify({"message": "User updated successfully"}), 200
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error updating user"}), 500
 
 @users_bp.route("/deleteuser/<int:id>", methods=["DELETE"])
 @login_required
-@admin_required
+@staff_required
 @protect_super_admin
 def delete_user(id):
     try:
@@ -82,22 +102,36 @@ def delete_user(id):
         if not user:
             return jsonify({"message": "User not found"}), 404
             
+        if request.role == 'manager':
+            if user.email_domain != request.user.email_domain:
+                return jsonify({"message": "Access denied: User outside your domain"}), 403
+            if user.role != 'user':
+                return jsonify({"message": "Managers can only delete standard users"}), 403
+            
         db.session.delete(user)
         ActivityLog.log(request.user_id, "Deleted User", f"Deleted user: {user.user_name} ({user.email})")
         db.session.commit()
         return jsonify({"message": "User deleted successfully"}), 200
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error deleting user"}), 500
 
 @users_bp.route("/blockuser/<int:id>", methods=["POST"])
 @login_required
-@admin_required
+@staff_required
 @protect_super_admin
 def block_user(id):
     try:
         user = User.query.get(id)
         if not user:
             return jsonify({"message": "User not found"}), 404
+            
+        if request.role == 'manager':
+            if user.email_domain != request.user.email_domain:
+                return jsonify({"message": "Access denied: User outside your domain"}), 403
+            if user.role != 'user':
+                return jsonify({"message": "Managers can only block standard users"}), 403
             
         if hasattr(user, 'is_blocked'):
             user.is_blocked = not user.is_blocked
@@ -108,7 +142,9 @@ def block_user(id):
         else:
              return jsonify({"message": "Block functionality not supported by model"}), 501
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error blocking user"}), 500
 
 @users_bp.route("/dashboard_stats", methods=["GET"])
 @login_required
@@ -197,7 +233,9 @@ def dashboard_stats():
         }), 200
 
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error unblocking user"}), 500
 
 @users_bp.route("/profile", methods=["GET"])
 @login_required
@@ -290,7 +328,8 @@ def get_profile():
             "fullname": user.fullname,
             "qualification": user.qualification,
             "dob": user.dob.strftime('%Y-%m-%d') if user.dob else "",
-            "isadmin": user.isadmin or user.id == 1,
+            "isadmin": user.isadmin,
+            "role": user.role,
             "gemini_api_key": user.gemini_api_key
         }
 
@@ -304,7 +343,9 @@ def get_profile():
         return jsonify({"user": user_data, "stats": stats}), 200
 
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error fetching profile"}), 500
 
 @users_bp.route("/profile", methods=["PUT"])
 @login_required
@@ -351,4 +392,54 @@ def update_profile():
         return jsonify({"message": "Profile updated successfully"}), 200
 
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error updating profile"}), 500
+
+@users_bp.route("/update_role/<int:user_id>", methods=["POST"])
+@login_required
+@staff_required
+@protect_super_admin
+def update_role(user_id):
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+        
+        # Manager restrictions
+        if request.role == 'manager':
+            # Check domain
+            if user.email_domain != request.user.email_domain:
+                return jsonify({"message": "Access denied: User outside your domain"}), 403
+            
+            # Check new role
+            data = request.get_json()
+            new_role = data.get("role")
+            if new_role == 'admin':
+                return jsonify({"message": "Managers cannot assign admin role"}), 403
+        else:
+            data = request.get_json()
+            new_role = data.get("role")
+        
+        if new_role not in ["admin", "manager", "user"]:
+            return jsonify({"message": "Invalid role"}), 400
+            
+        user.role = new_role
+        # Sync isadmin flag
+        user.isadmin = (new_role == "admin")
+        
+        db.session.commit()
+        ActivityLog.log(request.user_id, "Update Role", f"Changed role of {user.user_name} to {new_role}")
+        return jsonify({
+            "message": f"User role updated to {new_role}",
+            "user": {
+                "id": user.id,
+                "role": user.role,
+                "isadmin": user.isadmin
+            }
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error updating role"}), 500

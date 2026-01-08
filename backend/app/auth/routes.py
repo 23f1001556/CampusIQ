@@ -100,7 +100,8 @@ def login():
 
         token = jwt.encode({
             "user_id": user.id,
-            "isadmin": user.isadmin or user.id == 1,
+            "isadmin": user.isadmin,
+            "role": user.role,
             "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
         }, current_app.config["SECRET_KEY"], algorithm="HS256")
 
@@ -111,12 +112,15 @@ def login():
                 "id": user.id,
                 "username": user.user_name,
                 "email": user.email,
-                "isadmin": user.isadmin or user.id == 1
+                "isadmin": user.isadmin,
+                "role": user.role
             }
         }), 200
 
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": f"An error occurred during login: {str(e)}"}), 500
 
 
 # Register
@@ -173,7 +177,9 @@ def register():
     except ValueError as val:
         return jsonify({"message": str(val)}), 400
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "An error occurred during registration"}), 500
 
 @auth_bp.route("/verify_email/<token>", methods=["GET"])
 def verify_email(token):
@@ -199,7 +205,9 @@ def verify_email(token):
         
         return jsonify({"message": "Email verified and account created successfully", "status": "success"}), 200
     except Exception as e:
-        return jsonify({"message": str(e), "status": "error"}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "An error occurred during verification", "status": "error"}), 500
 
 
 # Logout
@@ -215,7 +223,9 @@ def logout():
         return jsonify({"message": "Logout successful"}), 200
 
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "An error occurred during logout"}), 500
 
 
 # Current user info
@@ -246,12 +256,15 @@ def current_user():
             "user": {
                 "username": user.user_name,
                 "email": user.email,
-                "isadmin": user.isadmin or user.id == 1
+                "isadmin": user.isadmin,
+                "role": user.role
             }
         }), 200
 
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "An error occurred fetching user data"}), 500
 
 
 @auth_bp.route("/verify_password", methods=["POST"])
@@ -269,4 +282,6 @@ def verify_password():
 
         return jsonify({"message": "Password verified", "verified": True}), 200
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "An error occurred during password verification"}), 500

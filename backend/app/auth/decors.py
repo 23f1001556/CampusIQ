@@ -30,8 +30,10 @@ def login_required(f):
                 return jsonify({"message": "Your account has been blocked. Please contact support."}), 403
 
             request.user_id = user_id
+            request.user = user
+            request.role = getattr(user, 'role', 'user')
             # Default isadmin to False if not present (for backward compatibility with old tokens)
-            request.isadmin = payload.get("isadmin", False)
+            request.isadmin = payload.get("isadmin", False) or (request.role == 'admin')
         except jwt.ExpiredSignatureError:
             return jsonify({"message": "Token expired"}), 401
         except jwt.InvalidTokenError:
@@ -46,17 +48,34 @@ def admin_required(f):
     @wraps(f)
     @login_required 
     def decorated(*args, **kwargs):
-        if not getattr(request, "isadmin", False):
+        if request.role != 'admin' and not getattr(request, "isadmin", False):
             return jsonify({"message": "Admin access required"}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+def staff_required(f):
+    @wraps(f)
+    @login_required 
+    def decorated(*args, **kwargs):
+        if request.role not in ['admin', 'manager']:
+            return jsonify({"message": "Staff (Admin or Manager) access required"}), 403
         return f(*args, **kwargs)
     return decorated
 
 def protect_super_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        # Check if the target resource ID is 1 (Super Admin)
-        target_id = kwargs.get("id")
-        if target_id == 1:
-            return jsonify({"message": "Action not allowed on Super Admin"}), 403
+        # Handle both possible parameter names
+        target_id = kwargs.get("id") or kwargs.get("user_id")
+        
+        # Prevent self-modification
+        if target_id == getattr(request, 'user_id', None):
+            return jsonify({"message": "You cannot perform this action on your own account"}), 403
+
+        # Prevent actions on any Admin user
+        from app.models.users import User
+        target_user = User.query.get(target_id)
+        if target_user and (target_user.isadmin or target_user.role == 'admin'):
+            return jsonify({"message": "Action not allowed on Admin users"}), 403
         return f(*args, **kwargs)
     return decorated

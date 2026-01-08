@@ -71,9 +71,11 @@ const handleLogin = async () => {
         localStorage.setItem('token', token)
         localStorage.setItem('user', JSON.stringify(user))
 
-        // Redirect based on user role/id
-        if (user.isadmin) {
+        // Redirect based on user role
+        if (user.isadmin || user.role === 'admin') {
             router.push('/dashboard/admin')
+        } else if (user.role === 'manager') {
+            router.push('/dashboard/manager')
         } else {
             router.push('/dashboard')
         }

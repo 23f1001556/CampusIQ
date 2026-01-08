@@ -38,6 +38,12 @@ const routes = [
             meta: { requiresAdmin: true }
         },
         {
+            path: 'manager',
+            name: 'ManagerDashboard',
+            component: () => import('../features/admin/views/ManagerDashboard.vue'),
+            meta: { requiresManager: true }
+        },
+        {
             path: '',
             name: 'Overview',
             component: () => import('../features/dashboard/views/DashboardHome.vue')
@@ -51,12 +57,14 @@ const routes = [
         {
             path: 'subjects',
             name: 'Subjects',
-            component: () => import('../features/subjects/views/SubjectList.vue')
+            component: () => import('../features/subjects/views/SubjectList.vue'),
+            // meta: { requiresNonAdmin: true }
         },
         {
             path: 'subjects/:id',
             name: 'SubjectDetail',
-            component: () => import('../features/subjects/views/SubjectDetail.vue')
+            component: () => import('../features/subjects/views/SubjectDetail.vue'),
+            // meta: { requiresNonAdmin: true }
         },
         {
             path: 'mock-quizzes',
@@ -98,6 +106,31 @@ const routes = [
             path: 'ai-hub',
             name: 'AIHub',
             component: () => import('../features/ai-analysis/views/AIHub.vue')
+        },
+        {
+            path: 'institute',
+            name: 'institute',
+            component: () => import('../features/institute/views/InstituteView.vue')
+        },
+        {
+            path: 'institute/:id',
+            name: 'course-detail',
+            component: () => import('../features/institute/views/CourseDetail.vue')
+        },
+        {
+            path: 'institute/saved',
+            name: 'saved-content',
+            component: () => import('../features/institute/views/SavedContent.vue')
+        },
+        {
+            path: 'subjects/:subjectId/chapters/:chapterId/quizzes/create',
+            name: 'ManualQuizCreator',
+            component: () => import('../features/subjects/views/ManualQuizCreator.vue')
+        },
+        {
+            path: 'subjects/:subjectId/chapters/:chapterId/quizzes/:quizId/edit',
+            name: 'ManualQuizEditor',
+            component: () => import('../features/subjects/views/ManualQuizCreator.vue')
         }
     ]
   },
@@ -129,7 +162,7 @@ router.beforeEach((to, from, next) => {
       if (to.matched.some(record => record.meta.requiresAdmin)) {
         try {
           const user = JSON.parse(localStorage.getItem('user'))
-          if (user && user.isadmin) {
+          if (user && (user.isadmin || user.role === 'admin')) {
             next()
           } else {
              // Redirect to dashboard if not admin
@@ -137,6 +170,34 @@ router.beforeEach((to, from, next) => {
           }
         } catch (e) {
           next('/login')
+        }
+      } else if (to.matched.some(record => record.meta.requiresManager)) {
+        // Manager-only pages
+        try {
+          const user = JSON.parse(localStorage.getItem('user'))
+          if (user && user.role === 'manager') {
+            next()
+          } else if (user && (user.isadmin || user.role === 'admin')) {
+            // Redirect admins to their dashboard
+            next('/dashboard/admin')
+          } else {
+            next('/dashboard')
+          }
+        } catch (e) {
+          next('/login')
+        }
+      } else if (to.matched.some(record => record.meta.requiresNonAdmin)) {
+        // Prevent admins from accessing certain pages like subjects
+        try {
+          const user = JSON.parse(localStorage.getItem('user'))
+          if (user && (user.isadmin || user.role === 'admin')) {
+            // Redirect admins away from non-admin pages
+            next('/dashboard/admin')
+          } else {
+            next()
+          }
+        } catch (e) {
+          next()
         }
       } else {
         next()

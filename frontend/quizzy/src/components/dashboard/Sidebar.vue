@@ -61,11 +61,12 @@ const handleNavClick = () => {
 }
 
 const links = computed(() => {
-    const isAdmin = props.user?.isadmin
+    const isStaff = props.user?.role === 'admin' || props.user?.role === 'manager'
+    const isAdmin = props.user?.role === 'admin' || props.user?.is_admin || props.user?.isadmin
 
-    return [
+    const allLinks = [
         {
-            path: isAdmin ? '/dashboard/admin' : '/dashboard',
+            path: isAdmin ? '/dashboard/admin' : (props.user?.role === 'manager' ? '/dashboard/manager' : '/dashboard'),
             text: 'Dashboard',
             icon: '📊',
             exact: true
@@ -74,8 +75,22 @@ const links = computed(() => {
         { path: '/dashboard/subjects', text: 'Subjects', icon: '📚' },
         { path: '/dashboard/leaderboard', text: 'Leaderboard', icon: '🏆' },
         { path: '/dashboard/mock-quizzes', text: 'Graded Quizzes', icon: '🎯' },
+        { path: '/dashboard/institute', text: 'Institute', icon: '🏛️' },
         { path: '/dashboard/ai-hub', text: 'AI Hub', icon: '🤖' }
     ]
+
+    let filteredLinks = allLinks
+
+    if (isAdmin) {
+        // Rename 'Subjects' to 'Files' for Admins
+        filteredLinks = filteredLinks.map(l => l.text === 'Subjects' ? { ...l, text: 'Files' } : l)
+    }
+    
+    if (props.user?.role === 'manager') {
+        filteredLinks = filteredLinks.filter(l => l.text !== 'Institute')
+    }
+
+    return filteredLinks
 })
 </script>
 

@@ -12,7 +12,8 @@ def fix_database_uri(uri):
     return uri
 
 def get_cors_origins():
-    raw = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+    default_origins = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000"
+    raw = os.getenv("CORS_ORIGINS", default_origins)
     origins = raw.split(",")
     return [o.strip() if o.strip().startswith("http") else f"https://{o.strip()}" for o in origins]
 
@@ -36,7 +37,7 @@ class BaseConfig:
     CORS_ORIGINS = get_cors_origins()
 
 class DevelopmentConfig(BaseConfig):
-    SQLALCHEMY_DATABASE_URI = fix_database_uri(os.getenv("POSTGRESDB_URL"))
+    SQLALCHEMY_DATABASE_URI = "sqlite:///local.db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     #mailing
