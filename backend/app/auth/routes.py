@@ -12,6 +12,15 @@ from app.celery.tasks import send_reset_password_email
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
+from threading import Thread
+
+def send_async_email(app, msg):
+    with app.app_context():
+        try:
+            mail.send(msg)
+        except Exception as e:
+            print(f"Failed to send async email: {e}")
+
 
 # Forgot Password
 @auth_bp.route("/forgot_password", methods=["POST"])
@@ -168,11 +177,14 @@ def register():
                 recipients=[email],
                 body=f"Click this link to verify your email:\n{verify_link}"
             )
-            mail.send(msg)
+            # Send email asynchronously to avoid blocking/timeout
+            Thread(target=send_async_email, args=(current_app._get_current_object(), msg)).start()
+            
             return jsonify({"message": f"Verification email sent to {email}. Please check your inbox."}), 201
         except Exception as email_error:
-            print(f"Email sending failed: {email_error}")
-            return jsonify({"message": f"Failed to send verification email. Please contact support."}), 500
+            # This catch might miss errors raised inside the thread, but ensures api safety
+            print(f"Email preparation failed: {email_error}")
+            return jsonify({"message": f"Failed to prepare verification email. Please contact support."}), 500
 
     except ValueError as val:
         return jsonify({"message": str(val)}), 400
