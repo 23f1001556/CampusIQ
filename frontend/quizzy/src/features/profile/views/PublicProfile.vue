@@ -12,11 +12,6 @@
         </div>
 
         <div v-else class="profile-content">
-            <!-- Back Button -->
-            <button @click="$router.back()" class="back-link">
-                ← Back
-            </button>
-
             <!-- Header Card -->
             <div class="profile-header-card">
                 <div class="header-background"></div>
@@ -115,7 +110,8 @@ const hasSocialLinks = computed(() => {
 const getFullImageUrl = (path) => {
     if (!path) return ''
     if (path.startsWith('http')) return path
-    return `http://127.0.0.1:5000${path}`
+    const baseUrl = api.defaults.baseURL || 'http://127.0.0.1:5000'
+    return `${baseUrl}${path}`
 }
 
 const fetchProfile = async () => {

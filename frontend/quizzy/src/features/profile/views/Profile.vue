@@ -230,11 +230,12 @@ const hasSocialLinks = computed(() => {
 
 const getFullImageUrl = (path) => {
     if (!path) return ''
-    // If backend returns absolute URL or one starting with http, return as is
     if (path.startsWith('http')) return path
-    // Otherwise prepend API base URL if needed, or if it's relative to root
-    // Assuming backend serves static from root or we need to point to backend host
-    return `http://127.0.0.1:5000${path}`
+
+    // Use the base URL from our API configuration to ensure consistency
+    // with whichever backend we are currently connected to (local or prod)
+    const baseUrl = api.defaults.baseURL || 'http://127.0.0.1:5000'
+    return `${baseUrl}${path}`
 }
 
 const triggerFileInput = () => {

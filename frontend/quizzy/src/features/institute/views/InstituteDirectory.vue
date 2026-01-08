@@ -65,7 +65,8 @@ const error = ref(null)
 const getFullImageUrl = (path) => {
     if (!path) return ''
     if (path.startsWith('http')) return path
-    return `http://127.0.0.1:5000${path}`
+    const baseUrl = api.defaults.baseURL || 'http://127.0.0.1:5000'
+    return `${baseUrl}${path}`
 }
 
 const getInitials = (user) => {
@@ -128,10 +129,7 @@ onMounted(() => {
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
-    background: linear-gradient(90deg, #fff, #999);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text-primary);
 }
 
 .header-text p {

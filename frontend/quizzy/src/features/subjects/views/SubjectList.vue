@@ -211,7 +211,7 @@ const confirmDelete = async (subject) => {
         await api.delete(`/subjects/deletesubject/${subject.id}`)
         fetchSubjects()
     } catch (error) {
-        alert(error.response?.data?.message || 'Delete failed')
+        console.error('Delete failed', error)
     }
     closeMenu()
 }

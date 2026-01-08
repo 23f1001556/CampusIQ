@@ -751,8 +751,7 @@ const executeConfirmAction = async () => {
         await confirmAction.value()
         closeConfirmModal()
     } catch (error) {
-        // Log error instead of alert
-        console.error(error)
+        console.error('Action failed', error)
     } finally {
         processingAction.value = false
     }

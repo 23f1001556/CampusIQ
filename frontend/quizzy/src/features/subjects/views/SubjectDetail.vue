@@ -237,7 +237,7 @@ const confirmDelete = async (chapter) => {
         await api.delete(`/chapters/deletechapter/${chapter.id}`)
         fetchDetails()
     } catch (error) {
-        alert(error.response?.data?.message || 'Delete failed')
+        console.error('Delete failed', error)
     }
     closeMenu()
 }
