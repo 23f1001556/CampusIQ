@@ -602,4 +602,23 @@ onMounted(() => {
     font-weight: 500;
     padding: 0.75rem 1.5rem;
 }
+
+@media (max-width: 768px) {
+    .header-actions {
+        flex-direction: column-reverse;
+        /* Button on top, Search below */
+        width: 100%;
+        align-items: stretch;
+        /* Stretch children to full width */
+    }
+
+    .search-wrapper {
+        width: 100%;
+    }
+
+    .btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
+}
 </style>

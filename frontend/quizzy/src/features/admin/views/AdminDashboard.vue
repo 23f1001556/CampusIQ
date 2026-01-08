@@ -62,16 +62,19 @@
 
             <!-- Institute Breakdown Table -->
             <div class="data-section">
-                <div class="section-header">
-                    <div class="title-group">
-                        <h2>Institute Comparison</h2>
-                        <div class="search-box inst-search">
+                <!-- Removed external section-header, moved inside table-card -->
+
+                <div class="table-card">
+                    <div class="card-header-inner">
+                        <div class="header-top-row">
+                            <h2>Manage Institutes</h2>
+                            <button @click="exportData" class="export-btn">Download CSV</button>
+                        </div>
+                        <div class="search-box full-width-search">
                             <input v-model="instSearchQuery" placeholder="Search by domain..." class="search-input">
                         </div>
                     </div>
-                    <button @click="exportData" class="export-btn">Download CSV</button>
-                </div>
-                <div class="table-card">
+
                     <table>
                         <thead>
                             <tr>
@@ -112,19 +115,7 @@
                 </div>
             </div>
 
-            <!-- Top AI Users -->
-            <div class="data-section">
-                <h2>Top 10 Active Users (AI Adoption)</h2>
-                <div class="top-users-grid">
-                    <div v-for="user in topUsers" :key="user.email" class="user-chip">
-                        <div class="user-rank">{{ user.count }}</div>
-                        <div class="user-meta">
-                            <span class="name">{{ user.username }}</span>
-                            <span class="email">{{ user.email }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Removed Top 10 Active Users Section -->
 
             <!-- User Management Component -->
             <div class="management-section">
@@ -411,10 +402,7 @@ onMounted(fetchData)
 .header h1 {
     font-size: 2.2rem;
     margin-bottom: 0.5rem;
-    background: linear-gradient(90deg, #fff, #999);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text-primary);
 }
 
 .header p {
@@ -493,21 +481,41 @@ onMounted(fetchData)
     margin-bottom: 3rem;
 }
 
-.section-header {
+/* Removed .section-header and .title-group styles as they are replaced */
+
+.card-header-inner {
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.header-top-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
 }
 
-.title-group {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
+.header-top-row h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary);
 }
 
-.inst-search {
-    width: 250px;
+.full-width-search {
+    width: 100%;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
 }
 
 .action-buttons {
@@ -538,9 +546,10 @@ onMounted(fetchData)
     background: transparent;
     border: 1px solid var(--primary-color);
     color: var(--primary-color);
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 8px;
     cursor: pointer;
+    font-size: 0.85rem;
 }
 
 .table-card {
@@ -816,5 +825,70 @@ input:checked+.slider:before {
 .btn-primary:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 900px) {
+    .charts-row {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    /* Horizontal Scroll for Charts */
+    .chart-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .chart-wrapper>div {
+        /* Target the inner container of vue-chartjs if present, or force canvas container width */
+        min-width: 600px;
+    }
+
+    /* Horizontal Scroll for Tables */
+    .table-card {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+        min-width: 800px;
+        /* Force table to be wider than screen */
+    }
+
+    .header h1 {
+        font-size: 1.8rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .title-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .inst-search {
+        width: 100%;
+    }
+
+    .export-btn {
+        width: 100%;
+        text-align: center;
+    }
 }
 </style>

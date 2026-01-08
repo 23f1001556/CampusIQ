@@ -294,11 +294,19 @@ onMounted(fetchUsers);
 
 .management-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     margin-bottom: 2rem;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.search-box {
+    width: 100%;
+}
+
+.search-input {
+    width: 100%;
+    /* Keep other styles same */
 }
 
 .management-header h2 {
