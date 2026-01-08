@@ -20,6 +20,7 @@ def get_cors_origins():
 class BaseConfig:
     SQLALCHEMY_DATABASE_URI = fix_database_uri(os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL", "sqlite:///site.db")))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
     SECRET_KEY = os.getenv("SECRET_KEY")
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
