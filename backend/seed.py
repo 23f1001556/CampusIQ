@@ -14,10 +14,10 @@ def seed_accounts():
         accounts = [
             {
                 "email": "sidhantsksk@gmail.com",
-                "user_name": "ADMIN",
-                "password": "Sidhant@2001",
+                "user_name": "sidhant",
+                "password": "Sidhant2001@N_P",
                 "role": "admin",
-                "fullname": "System Administrator"
+                "fullname": "Sidhant System Admin"
             },
             {
                 "email": "manager@example.com",
