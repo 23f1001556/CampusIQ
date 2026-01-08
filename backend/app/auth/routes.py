@@ -178,8 +178,9 @@ def register():
         return jsonify({"message": str(val)}), 400
     except Exception as e:
         import traceback
-        print(traceback.format_exc())
-        return jsonify({"message": "An error occurred during registration"}), 500
+        current_app.logger.error(f"Registration error: {str(e)}\n{traceback.format_exc()}")
+        print(f"Registration FULL error: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"message": f"An error occurred during registration: {str(e)}"}), 500
 
 @auth_bp.route("/verify_email/<token>", methods=["GET"])
 def verify_email(token):
