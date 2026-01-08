@@ -32,6 +32,20 @@ def seed_accounts():
                 "password": "User@2001",
                 "role": "user",
                 "fullname": "Standard User"
+            },
+            {
+                "email": "student@alpha.edu",
+                "user_name": "student_alpha",
+                "password": "Test@123",
+                "role": "user",
+                "fullname": "Alpha Student"
+            },
+            {
+                "email": "student2@alpha.edu",
+                "user_name": "student_alpha_2",
+                "password": "Test@123",
+                "role": "user",
+                "fullname": "Alpha Student 2"
             }
         ]
 
@@ -61,6 +75,7 @@ def seed_accounts():
                 user.role = acc["role"]
                 user.isadmin = (acc["role"] == "admin")
                 user.is_verified = True
+                user.password = acc["password"] # Ensure password is synced
                 db.session.commit()
 
 if __name__ == "__main__":

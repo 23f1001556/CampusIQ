@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
+from datetime import datetime
 from app.models.users import User
 from app.models.activity import ActivityLog
 from app.configs.extensions import db
@@ -330,7 +331,12 @@ def get_profile():
             "dob": user.dob.strftime('%Y-%m-%d') if user.dob else "",
             "isadmin": user.isadmin,
             "role": user.role,
-            "gemini_api_key": user.gemini_api_key
+            "gemini_api_key": user.gemini_api_key,
+            "bio": user.bio,
+            "profile_picture": user.profile_picture,
+            "social_github": user.social_github,
+            "social_linkedin": user.social_linkedin,
+            "social_instagram": user.social_instagram
         }
 
         stats = {
@@ -362,6 +368,15 @@ def update_profile():
             user.fullname = data["fullname"]
         if "qualification" in data:
             user.qualification = data["qualification"]
+        if "bio" in data:
+            user.bio = data["bio"]
+        if "social_github" in data:
+            user.social_github = data["social_github"]
+        if "social_linkedin" in data:
+            user.social_linkedin = data["social_linkedin"]
+        if "social_instagram" in data:
+            user.social_instagram = data["social_instagram"]
+            
         if "dob" in data:
             try:
                 from datetime import datetime
@@ -443,3 +458,187 @@ def update_role(user_id):
         import traceback
         print(traceback.format_exc())
         return jsonify({"message": "Error updating role"}), 500
+
+@users_bp.route("/profile-picture", methods=["POST"])
+@login_required
+def upload_profile_picture():
+    try:
+        if 'file' not in request.files:
+            return jsonify({"message": "No file part"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"message": "No selected file"}), 400
+            
+        if file:
+            # Validate file extension
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+            filename = file.filename
+            if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+                return jsonify({"message": "Invalid file type"}), 400
+
+            import os
+            from werkzeug.utils import secure_filename
+            
+            # Setup uploads folder
+            # Ideally this path should be in config, but using app instance path for now
+            # static/uploads/profiles
+            base_path = os.path.join(current_app.root_path, 'static', 'uploads', 'profiles')
+            os.makedirs(base_path, exist_ok=True)
+            
+            # Generate unique filename
+            ext = filename.rsplit('.', 1)[1].lower()
+            unique_name = f"user_{request.user_id}_{int(datetime.utcnow().timestamp())}.{ext}"
+            file_path = os.path.join(base_path, unique_name)
+            
+            file.save(file_path)
+            
+            # Update user record
+            user = User.query.get(request.user_id)
+            # URL path relative to static
+            # Assuming standard Flask static serving from /static
+            web_path = f"/static/uploads/profiles/{unique_name}"
+            user.profile_picture = web_path
+            
+            db.session.commit()
+            
+            return jsonify({"message": "Profile picture updated", "url": web_path}), 200
+            
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": f"Error uploading image: {str(e)}"}), 500
+
+@users_bp.route("/directory", methods=["GET"])
+@login_required
+def get_directory():
+    try:
+        user_id = request.user_id
+        current_user = User.query.get(user_id)
+        if not current_user:
+            return jsonify({"message": "User not found"}), 404
+            
+        domain = current_user.email_domain
+        search_query = request.args.get('search', '').lower()
+        
+        # Base query: same domain, exclude admins unless you are admin (though admins might want to see each other, usually directory is for peers)
+        # Requirement: "each user under a same institute... can view... each other"
+        # So we show everyone in domain.
+        
+        query = User.query.filter(User.email.like(f"%@{domain}"))
+        
+        # Filter by search
+        if search_query:
+            query = query.filter(
+                db.or_(
+                    User.fullname.ilike(f"%{search_query}%"),
+                    User.user_name.ilike(f"%{search_query}%"),
+                    User.email.ilike(f"%{search_query}%")
+                )
+            )
+            
+        users = query.all()
+        
+        directory_list = []
+        for u in users:
+            # Hide self from list? Optional. Let's keep self for now so they see how they appear.
+            directory_list.append({
+                "id": u.id,
+                "username": u.user_name,
+                "fullname": u.fullname,
+                "profile_picture": u.profile_picture,
+                "qualification": u.qualification,
+                "role": u.role,
+                "bio": u.bio # Maybe show snippet
+            })
+            
+        return jsonify({"users": directory_list}), 200
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error fetching directory"}), 500
+
+@users_bp.route("/public-profile/<int:target_id>", methods=["GET"])
+@login_required
+def get_public_profile(target_id):
+    try:
+        # 1. Fetch Requestor and Target
+        requestor = User.query.get(request.user_id)
+        target = User.query.get(target_id)
+        
+        if not target:
+            return jsonify({"message": "User not found"}), 404
+            
+        # 2. Check Domain Access
+        # Allow if same domain OR requestor is global admin
+        is_global_admin = (requestor.role == 'admin' or requestor.isadmin)
+        if target.email_domain != requestor.email_domain and not is_global_admin:
+            return jsonify({"message": "Profile not accessible"}), 403
+            
+        # 3. Fetch Stats (Public Subset)
+        # We can reuse some logic or just do quick counts
+        from app.models.score import Scores
+        from app.models.mock_quiz import MockAttempt
+        
+        std_count = Scores.query.filter_by(user_id=target.id).count()
+        mock_count = MockAttempt.query.filter_by(user_id=target.id).count()
+        total_quizzes = std_count + mock_count
+        
+        # Avg Score logic simplified for public view (optional, or reuse robust logic)
+        # Let's do a quick calc
+        std_scores = Scores.query.filter_by(user_id=target.id).all()
+        total_obtained = sum([s.total_score for s in std_scores])
+        # Note: This crude avg doesn't account for max possible, but for public view maybe sufficient?
+        # Actually user asked for "everything in profile page", so we should try to be accurate.
+        # Let's call a helper or duplicate the robust logic for accuracy.
+        
+        # Reuse robust logic from dashboard_stats slightly adapted
+        from app.models.question import Question
+        from app.models.mock_quiz import MockQuestion
+        
+        mock_attempts = MockAttempt.query.filter_by(user_id=target.id).all()
+        
+        robust_possible = 0
+        robust_obtained = 0
+        
+        for s in std_scores:
+            robust_obtained += s.total_score
+            q_count = Question.query.filter_by(quiz_id=s.quiz_id).count()
+            robust_possible += (q_count if q_count > 0 else 1)
+            
+        for m in mock_attempts:
+            robust_obtained += m.score
+            mq_count = MockQuestion.query.filter_by(mock_quiz_id=m.mock_quiz_id).count()
+            robust_possible += (mq_count if mq_count > 0 else 1)
+            
+        avg_score = 0
+        if robust_possible > 0:
+            avg_score = round((robust_obtained / robust_possible) * 100, 1)
+
+        # 4. Construct Public Data
+        public_data = {
+            "id": target.id,
+            "username": target.user_name,
+            "fullname": target.fullname,
+            "email": target.email, # Included as per request "everything... except api key"
+            "qualification": target.qualification,
+            "bio": target.bio,
+            "profile_picture": target.profile_picture,
+            "social_github": target.social_github,
+            "social_linkedin": target.social_linkedin,
+            "social_instagram": target.social_instagram,
+            "role": target.role,
+            "joined_at": target.created_at.strftime('%Y-%m-%d'),
+            "stats": {
+                "total_quizzes": total_quizzes,
+                "average_score": avg_score
+            }
+        }
+        
+        return jsonify({"user": public_data}), 200
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "Error fetching public profile"}), 500

@@ -85,10 +85,15 @@ const links = computed(() => {
         // Rename 'Subjects' to 'Files' for Admins
         filteredLinks = filteredLinks.map(l => l.text === 'Subjects' ? { ...l, text: 'Files' } : l)
     }
-    
-    if (props.user?.role === 'manager') {
-        filteredLinks = filteredLinks.filter(l => l.text !== 'Institute')
-    }
+
+    // Simplified Filtering:
+    // Institute link only visible for 'user' (Student)
+    filteredLinks = filteredLinks.filter(l => {
+        if (l.text === 'Institute') {
+            return props.user?.role === 'user'
+        }
+        return true
+    })
 
     return filteredLinks
 })

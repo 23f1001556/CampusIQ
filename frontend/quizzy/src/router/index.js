@@ -53,7 +53,16 @@ const routes = [
             name: 'Profile',
             component: () => import('../features/profile/views/Profile.vue')
         },
-
+        {
+            path: 'institute',
+            name: 'InstituteDirectory',
+            component: () => import('../features/institute/views/InstituteDirectory.vue')
+        },
+        {
+            path: 'users/:id',
+            name: 'PublicProfile',
+            component: () => import('../features/profile/views/PublicProfile.vue')
+        },
         {
             path: 'subjects',
             name: 'Subjects',
@@ -107,21 +116,13 @@ const routes = [
             name: 'AIHub',
             component: () => import('../features/ai-analysis/views/AIHub.vue')
         },
+        // Removed conflicting institute routes
+        /*
         {
             path: 'institute',
-            name: 'institute',
-            component: () => import('../features/institute/views/InstituteView.vue')
-        },
-        {
-            path: 'institute/:id',
-            name: 'course-detail',
-            component: () => import('../features/institute/views/CourseDetail.vue')
-        },
-        {
-            path: 'institute/saved',
-            name: 'saved-content',
-            component: () => import('../features/institute/views/SavedContent.vue')
-        },
+            component: ... 
+        }
+        */
         {
             path: 'subjects/:subjectId/chapters/:chapterId/quizzes/create',
             name: 'ManualQuizCreator',

@@ -21,6 +21,13 @@ class User(db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     _gemini_api_key = db.Column("gemini_api_key", db.String(500))
+    
+    # Profile Enhancements
+    bio = db.Column(db.String(500))
+    profile_picture = db.Column(db.String(255))
+    social_github = db.Column(db.String(255))
+    social_linkedin = db.Column(db.String(255))
+    social_instagram = db.Column(db.String(255))
 
     @property
     def email_domain(self):

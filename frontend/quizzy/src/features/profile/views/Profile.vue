@@ -4,10 +4,19 @@
         <div class="profile-header-card">
             <div class="header-background"></div>
             <div class="header-content">
-                <div class="avatar-wrapper">
-                    <div class="avatar">{{ initials }}</div>
+                <div class="avatar-wrapper" @click="triggerFileInput">
+                    <img v-if="user.profile_picture" :src="getFullImageUrl(user.profile_picture)" class="avatar-img"
+                        alt="Profile" />
+                    <div v-else class="avatar">{{ initials }}</div>
+
+                    <div class="upload-overlay">
+                        <span class="camera-icon">📷</span>
+                    </div>
                     <div class="status-indicator"></div>
+                    <input type="file" ref="fileInput" class="hidden-input" accept="image/*"
+                        @change="handleFileUpload" />
                 </div>
+
                 <div class="user-info">
                     <div class="name-row">
                         <h1>{{ user.fullname || user.username }}</h1>
@@ -15,6 +24,29 @@
                     </div>
                     <p class="email">{{ user.email }}</p>
                     <p class="qualification" v-if="user.qualification">{{ user.qualification }}</p>
+
+                    <p class="bio" v-if="user.bio">{{ user.bio }}</p>
+
+                    <div class="social-links" v-if="hasSocialLinks">
+                        <a v-if="user.social_github" :href="user.social_github" target="_blank"
+                            class="social-icon github" title="GitHub">
+                            <span class="icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                    viewBox="0 0 16 16">
+                                    <path
+                                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                                </svg>
+                            </span>
+                        </a>
+                        <a v-if="user.social_linkedin" :href="user.social_linkedin" target="_blank"
+                            class="social-icon linkedin" title="LinkedIn">
+                            <span class="icon">💼</span>
+                        </a>
+                        <a v-if="user.social_instagram" :href="user.social_instagram" target="_blank"
+                            class="social-icon instagram" title="Instagram">
+                            <span class="icon">📸</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -52,11 +84,41 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Full Name</label>
-                            <input v-model="form.fullname" placeholder="John Doe" />
+                            <input v-model="form.fullname" maxlength="30" placeholder="John Doe" />
                         </div>
                         <div class="form-group">
                             <label>Qualification</label>
-                            <input v-model="form.qualification" placeholder="e.g. BSc Computer Science" />
+                            <input v-model="form.qualification" maxlength="30"
+                                placeholder="e.g. BSc Computer Science" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bio (Max 40 chars)</label>
+                        <input v-model="form.bio" maxlength="40" placeholder="Short bio (e.g. Data Scientist)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Social Profiles</label>
+                        <div class="social-inputs">
+                            <div class="social-input-group">
+                                <span class="input-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        viewBox="0 0 16 16">
+                                        <path
+                                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                                    </svg>
+                                </span>
+                                <input v-model="form.social_github" maxlength="100" placeholder="GitHub URL" />
+                            </div>
+                            <div class="social-input-group">
+                                <span class="input-icon">💼</span>
+                                <input v-model="form.social_linkedin" maxlength="100" placeholder="LinkedIn URL" />
+                            </div>
+                            <div class="social-input-group">
+                                <span class="input-icon">📸</span>
+                                <input v-model="form.social_instagram" maxlength="100" placeholder="Instagram URL" />
+                            </div>
                         </div>
                     </div>
 
@@ -136,14 +198,58 @@ const form = ref({
     fullname: '',
     qualification: '',
     dob: '',
-    gemini_api_key: ''
+    gemini_api_key: '',
+    bio: '',
+    social_github: '',
+    social_linkedin: '',
+    social_instagram: ''
 })
 const saving = ref(false)
+const fileInput = ref(null)
 
 const initials = computed(() => {
     const name = user.value.fullname || user.value.username || 'User'
     return name.substring(0, 2).toUpperCase()
 })
+
+const hasSocialLinks = computed(() => {
+    return user.value.social_github || user.value.social_linkedin || user.value.social_instagram
+})
+
+const getFullImageUrl = (path) => {
+    if (!path) return ''
+    // If backend returns absolute URL or one starting with http, return as is
+    if (path.startsWith('http')) return path
+    // Otherwise prepend API base URL if needed, or if it's relative to root
+    // Assuming backend serves static from root or we need to point to backend host
+    return `http://127.0.0.1:5000${path}`
+}
+
+const triggerFileInput = () => {
+    fileInput.value.click()
+}
+
+const handleFileUpload = async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+        const res = await api.post('/users/profile-picture', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+        // Update user profile picture immediately
+        user.value.profile_picture = res.data.url
+        alert("Profile picture updated!")
+    } catch (error) {
+        console.error(error)
+        alert(error.response?.data?.message || "Failed to upload image")
+    }
+}
 
 const fetchProfile = async () => {
     try {
@@ -156,6 +262,10 @@ const fetchProfile = async () => {
         form.value.qualification = user.value.qualification || ''
         form.value.dob = user.value.dob || ''
         form.value.gemini_api_key = user.value.gemini_api_key || ''
+        form.value.bio = user.value.bio || ''
+        form.value.social_github = user.value.social_github || ''
+        form.value.social_linkedin = user.value.social_linkedin || ''
+        form.value.social_instagram = user.value.social_instagram || ''
     } catch (error) {
         console.error("Failed to load profile", error)
     }
@@ -165,7 +275,6 @@ const saveProfile = async () => {
     saving.value = true
     try {
         await api.put('/users/profile', form.value)
-        // Refresh to get updated data/stats if needed, usually just user data updates
         await fetchProfile()
         alert("Profile updated successfully")
     } catch (error) {
@@ -218,11 +327,22 @@ onMounted(() => {
     display: flex;
     align-items: flex-end;
     gap: 2rem;
-    margin-top: -40px;
+    margin-top: -20px;
+    /* Reduced overlap to prevent text being cut */
 }
 
 .avatar-wrapper {
     position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.avatar-wrapper:hover .upload-overlay {
+    opacity: 1;
+}
+
+.avatar-wrapper:active {
+    transform: scale(0.95);
 }
 
 .avatar {
@@ -240,6 +360,42 @@ onMounted(() => {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
+.avatar-img {
+    width: 120px;
+    height: 120px;
+    border: 4px solid var(--bg-secondary);
+    border-radius: 50%;
+    object-fit: cover;
+    background: #1e293b;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.upload-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    border: 4px solid transparent;
+    /* Match border width to keep size same */
+}
+
+.camera-icon {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.hidden-input {
+    display: none;
+}
+
 .status-indicator {
     position: absolute;
     bottom: 10px;
@@ -254,6 +410,8 @@ onMounted(() => {
 .user-info {
     padding-bottom: 0.5rem;
     flex: 1;
+    margin-top: 2rem;
+    /* Pushes text down below the avatar/banner overlap */
 }
 
 .name-row {
@@ -281,6 +439,39 @@ onMounted(() => {
     font-weight: 500;
     margin: 0.25rem 0 0 0;
     font-size: 0.9rem;
+}
+
+.bio {
+    margin-top: 0.75rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    max-width: 600px;
+}
+
+.social-links {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.social-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s;
+    text-decoration: none;
+    font-size: 1.2rem;
+}
+
+.social-icon:hover {
+    transform: translateY(-2px);
+    background: var(--bg-accent);
 }
 
 .badge {
@@ -388,6 +579,16 @@ onMounted(() => {
     .name-row {
         justify-content: center;
     }
+
+    .bio {
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .social-links {
+        justify-content: center;
+    }
 }
 
 .content-card {
@@ -431,7 +632,8 @@ onMounted(() => {
     color: var(--text-secondary);
 }
 
-.form-group input {
+.form-group input,
+.bio-input {
     padding: 0.875rem 1rem;
     border-radius: 10px;
     border: 1px solid var(--border-color);
@@ -439,10 +641,54 @@ onMounted(() => {
     color: var(--text-primary);
     font-size: 0.95rem;
     transition: all 0.2s;
+    font-family: inherit;
 }
 
-.form-group input:focus {
+.bio-input {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-group input:focus,
+.bio-input:focus {
     outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.social-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.social-input-group {
+    display: flex;
+    align-items: center;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.social-input-group .input-icon {
+    padding: 0 0.8rem;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.social-input-group input {
+    border: none;
+    border-radius: 0;
+    flex: 1;
+    padding-left: 0;
+}
+
+.social-input-group input:focus {
+    box-shadow: none;
+}
+
+.social-input-group:focus-within {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
@@ -582,6 +828,7 @@ onMounted(() => {
     padding: 0.25rem 0.75rem;
     background: var(--bg-secondary);
     border-radius: 8px;
+    background: var(--bg-secondary);
 }
 
 .score-high {
