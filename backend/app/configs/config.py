@@ -37,7 +37,7 @@ class BaseConfig:
     CORS_ORIGINS = get_cors_origins()
 
 class DevelopmentConfig(BaseConfig):
-    SQLALCHEMY_DATABASE_URI = "sqlite:///local.db"
+    SQLALCHEMY_DATABASE_URI = fix_database_uri(os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL", "sqlite:///local.db")))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     #mailing
