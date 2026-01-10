@@ -15,11 +15,14 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 from threading import Thread
 
 def send_async_email(app, msg):
-    with app.app_context():
         try:
-            mail.send(msg)
+            with app.app_context():
+                mail.send(msg)
         except Exception as e:
+             # Just print for now, but in production this goes to stdout/logs
             print(f"Failed to send async email: {e}")
+            import traceback
+            traceback.print_exc()
 
 
 # Forgot Password

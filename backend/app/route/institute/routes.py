@@ -24,10 +24,10 @@ def ensure_columns():
                 conn.execute(db.text(f"ALTER TABLE {table} ADD COLUMN link_url VARCHAR(500)"))
         conn.commit()
 
-try:
-    ensure_columns()
-except Exception as e:
-    print(f"Column check failed: {e}")
+# try:
+#     ensure_columns()
+# except Exception as e:
+#     print(f"Column check failed: {e}")
 
 def allowed_file(filename):
     return '.' in filename and \
