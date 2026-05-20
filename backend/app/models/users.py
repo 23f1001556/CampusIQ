@@ -18,6 +18,7 @@ class User(db.Model):
     is_blocked = db.Column(db.Boolean, default=False, nullable=False)
     is_verified = db.Column(db.Boolean, default=False)
     _gemini_api_key = db.Column("gemini_api_key", db.String(500))
+    role = db.Column(db.String(50), default="student", nullable=False)
 
     # Relationships
     scores = db.relationship("Scores", back_populates="user", cascade="all, delete-orphan")
