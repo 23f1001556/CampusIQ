@@ -12,7 +12,7 @@ def fix_database_uri(uri):
     return uri
 
 def get_cors_origins():
-    default_origins = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,https://quizv2-mjsj5mq2f-23f1001556s-projects.vercel.app,https://quizv2.vercel.app,https://quizv2-tau.vercel.app,https://quizv2-23f1001556s-projects.vercel.app"
+    default_origins = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,https://quizv2-mjsj5mq2f-23f1001556s-projects.vercel.app,https://quizv2.vercel.app,https://quizv2-tau.vercel.app,https://quizv2-23f1001556s-projects.vercel.app,https://quizv2-ouxqd71u1-23f1001556s-projects.vercel.app"
     raw = os.getenv("CORS_ORIGINS", default_origins)
     origins = raw.split(",")
     return [o.strip() if o.strip().startswith("http") else f"https://{o.strip()}" for o in origins]

@@ -3,7 +3,7 @@ import axios from "axios";
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || (isLocal ? "http://127.0.0.1:5000" : "https://quizv2-wq0n.onrender.com"),
+  baseURL: import.meta.env.VITE_API_URL || (isLocal ? "http://127.0.0.1:5000" : "/api"),
   headers: {
     "Content-Type": "application/json",
   },
