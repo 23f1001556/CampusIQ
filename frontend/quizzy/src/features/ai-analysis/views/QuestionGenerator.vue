@@ -830,6 +830,31 @@ const saveQuiz = async () => {
     margin-top: 2rem;
 }
 
+@media (max-width: 768px) {
+    .settings-bar {
+        flex-direction: column;
+        gap: 1.5rem;
+        align-items: stretch;
+    }
+
+    .btn-generate {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
+
+    .setting-item {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .compact-select,
+    .compact-range {
+        flex: 1;
+        max-width: 200px;
+    }
+}
+
 .btn-primary {
     background: var(--primary-color);
     color: white;

@@ -59,9 +59,13 @@ def create_quiz():
         
         # Notify users
         if chapter and chapter.subject_id:
-            subject = Subject.query.get(chapter.subject_id)
-            if subject:
-                notify_new_quiz.delay(name, subject.name)
+            try:
+                subject = Subject.query.get(chapter.subject_id)
+                if subject:
+                    notify_new_quiz.delay(name, subject.name)
+            except Exception as e:
+                # Log error but don't fail the request if notification service is down
+                print(f"Failed to send quiz notification: {e}")
         
         return jsonify({"message": "Quiz created successfully", "quiz_id": new_quiz.id}), 201
 
@@ -243,7 +247,7 @@ def submit_quiz():
         quiz_id = data.get("quiz_id")
         answers = data.get("answers") # Dict {question_id: selected_option_str}
 
-        if not quiz_id or not answers:
+        if not quiz_id or answers is None:
             return jsonify({"message": "Quiz ID and Answers are required"}), 400
 
         # Verify Quiz
@@ -484,10 +488,12 @@ def save_generated_quiz():
 @login_required
 def publish_quiz(id):
     try:
-        # Only admin should publish? Or user who created it? 
-        # User said "if user is admin then we will have option"
-        if not getattr(request, "isadmin", False):
-             return jsonify({"message": "Admin access required"}), 403
+        # Check for Admin OR Manager permissions
+        is_admin = getattr(request, "isadmin", False)
+        is_manager = getattr(request, "role", None) == "manager"
+        
+        if not is_admin and not is_manager:
+             return jsonify({"message": "Admin or Manager access required"}), 403
 
         quiz = Quiz.query.get(id)
         if not quiz:
@@ -519,8 +525,12 @@ def publish_quiz(id):
 @login_required
 def release_results(id):
     try:
-        if not getattr(request, "isadmin", False):
-             return jsonify({"message": "Admin access required"}), 403
+        # Check for Admin OR Manager permissions
+        is_admin = getattr(request, "isadmin", False)
+        is_manager = getattr(request, "role", None) == "manager"
+
+        if not is_admin and not is_manager:
+             return jsonify({"message": "Admin or Manager access required"}), 403
 
         quiz = Quiz.query.get(id)
         if not quiz:
@@ -659,4 +669,150 @@ def get_leaderboard():
         }), 200
 
     except Exception as e:
+        return jsonify({"message": str(e)}), 500
+
+@quiz_bp.route("/add_questions/<int:quiz_id>", methods=["POST"])
+@login_required
+def add_questions(quiz_id):
+    try:
+        # Verify quiz ownership
+        quiz = Quiz.query.join(Chapter).join(Subject).filter(
+            Quiz.id == quiz_id, 
+            Subject.user_id == request.user_id
+        ).first()
+        
+        if not quiz:
+            return jsonify({"message": "Quiz not found or access denied"}), 404
+        
+        data = request.get_json()
+        questions_data = data.get("questions", [])
+        
+        if not questions_data:
+            return jsonify({"message": "No questions provided"}), 400
+        
+        from app.models.question import Question
+        
+        for q_data in questions_data:
+            question_statement = q_data.get("question_statement")
+            option_1 = q_data.get("option_1")
+            option_2 = q_data.get("option_2")
+            option_3 = q_data.get("option_3")
+            option_4 = q_data.get("option_4")
+            correct_option = q_data.get("correct_option")
+            
+            if not all([question_statement, option_1, option_2, option_3, option_4, correct_option]):
+                return jsonify({"message": "All question fields are required"}), 400
+            
+            new_question = Question(
+                quiz_id=quiz_id,
+                chapter_id=quiz.chapter_id,
+                question_statement=question_statement,
+                option_1=option_1,
+                option_2=option_2,
+                option_3=option_3,
+                option_4=option_4,
+                correct_option=str(correct_option),
+                question_type="single"
+            )
+            db.session.add(new_question)
+        
+        db.session.commit()
+        return jsonify({"message": "Questions added successfully"}), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": str(e)}), 500
+
+@quiz_bp.route("/get_questions/<int:quiz_id>", methods=["GET"])
+@login_required
+def get_questions(quiz_id):
+    try:
+        # Verify quiz ownership
+        quiz = Quiz.query.join(Chapter).join(Subject).filter(
+            Quiz.id == quiz_id, 
+            Subject.user_id == request.user_id
+        ).first()
+        
+        if not quiz:
+            return jsonify({"message": "Quiz not found or access denied"}), 404
+        
+        from app.models.question import Question
+        questions = Question.query.filter_by(quiz_id=quiz_id).all()
+        
+        questions_list = []
+        for q in questions:
+            questions_list.append({
+                "id": q.id,
+                "question_statement": q.question_statement,
+                "option_1": q.option_1,
+                "option_2": q.option_2,
+                "option_3": q.option_3,
+                "option_4": q.option_4,
+                "correct_option": q.correct_option,
+                "question_type": q.question_type
+            })
+        
+        return jsonify({"questions": questions_list}), 200
+        
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+
+@quiz_bp.route("/update_question/<int:question_id>", methods=["PUT"])
+@login_required
+def update_question(question_id):
+    try:
+        from app.models.question import Question
+        
+        # Verify question ownership through quiz
+        question = Question.query.join(Quiz).join(Chapter).join(Subject).filter(
+            Question.id == question_id,
+            Subject.user_id == request.user_id
+        ).first()
+        
+        if not question:
+            return jsonify({"message": "Question not found or access denied"}), 404
+        
+        data = request.get_json()
+        
+        if "question_statement" in data:
+            question.question_statement = data["question_statement"]
+        if "option_1" in data:
+            question.option_1 = data["option_1"]
+        if "option_2" in data:
+            question.option_2 = data["option_2"]
+        if "option_3" in data:
+            question.option_3 = data["option_3"]
+        if "option_4" in data:
+            question.option_4 = data["option_4"]
+        if "correct_option" in data:
+            question.correct_option = str(data["correct_option"])
+        
+        db.session.commit()
+        return jsonify({"message": "Question updated successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": str(e)}), 500
+
+@quiz_bp.route("/delete_question/<int:question_id>", methods=["DELETE"])
+@login_required
+def delete_question(question_id):
+    try:
+        from app.models.question import Question
+        
+        # Verify question ownership through quiz
+        question = Question.query.join(Quiz).join(Chapter).join(Subject).filter(
+            Question.id == question_id,
+            Subject.user_id == request.user_id
+        ).first()
+        
+        if not question:
+            return jsonify({"message": "Question not found or access denied"}), 404
+        
+        db.session.delete(question)
+        db.session.commit()
+        return jsonify({"message": "Question deleted successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
         return jsonify({"message": str(e)}), 500

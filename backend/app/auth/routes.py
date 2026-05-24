@@ -12,6 +12,18 @@ from app.celery.tasks import send_reset_password_email
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
+from threading import Thread
+
+def send_async_email(app, msg):
+        try:
+            with app.app_context():
+                mail.send(msg)
+        except Exception as e:
+             # Just print for now, but in production this goes to stdout/logs
+            print(f"Failed to send async email: {e}")
+            import traceback
+            traceback.print_exc()
+
 
 # Forgot Password
 @auth_bp.route("/forgot_password", methods=["POST"])
@@ -100,7 +112,8 @@ def login():
 
         token = jwt.encode({
             "user_id": user.id,
-            "isadmin": user.isadmin or user.id == 1,
+            "isadmin": user.isadmin,
+            "role": user.role,
             "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
         }, current_app.config["SECRET_KEY"], algorithm="HS256")
 
@@ -111,12 +124,15 @@ def login():
                 "id": user.id,
                 "username": user.user_name,
                 "email": user.email,
-                "isadmin": user.isadmin or user.id == 1
+                "isadmin": user.isadmin,
+                "role": user.role
             }
         }), 200
 
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": f"An error occurred during login: {str(e)}"}), 500
 
 
 # Register
@@ -164,16 +180,21 @@ def register():
                 recipients=[email],
                 body=f"Click this link to verify your email:\n{verify_link}"
             )
-            mail.send(msg)
+            # Send email asynchronously to avoid blocking/timeout
+            Thread(target=send_async_email, args=(current_app._get_current_object(), msg)).start()
+            
             return jsonify({"message": f"Verification email sent to {email}. Please check your inbox."}), 201
         except Exception as email_error:
-            print(f"Email sending failed: {email_error}")
-            return jsonify({"message": f"Failed to send verification email. Please contact support."}), 500
+            # This catch might miss errors raised inside the thread, but ensures api safety
+            print(f"Email preparation failed: {email_error}")
+            return jsonify({"message": f"Failed to prepare verification email. Please contact support."}), 500
 
     except ValueError as val:
         return jsonify({"message": str(val)}), 400
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        current_app.logger.error(f"Registration error: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"message": f"An error occurred during registration: {str(e)}"}), 500
 
 @auth_bp.route("/verify_email/<token>", methods=["GET"])
 def verify_email(token):
@@ -199,7 +220,9 @@ def verify_email(token):
         
         return jsonify({"message": "Email verified and account created successfully", "status": "success"}), 200
     except Exception as e:
-        return jsonify({"message": str(e), "status": "error"}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "An error occurred during verification", "status": "error"}), 500
 
 
 # Logout
@@ -215,7 +238,9 @@ def logout():
         return jsonify({"message": "Logout successful"}), 200
 
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "An error occurred during logout"}), 500
 
 
 # Current user info
@@ -246,12 +271,15 @@ def current_user():
             "user": {
                 "username": user.user_name,
                 "email": user.email,
-                "isadmin": user.isadmin or user.id == 1
+                "isadmin": user.isadmin,
+                "role": user.role
             }
         }), 200
 
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "An error occurred fetching user data"}), 500
 
 
 @auth_bp.route("/verify_password", methods=["POST"])
@@ -269,4 +297,6 @@ def verify_password():
 
         return jsonify({"message": "Password verified", "verified": True}), 200
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": "An error occurred during password verification"}), 500

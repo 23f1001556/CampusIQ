@@ -29,12 +29,13 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '@/components/dashboard/Sidebar.vue'
 import Header from '@/components/dashboard/Header.vue'
 import api from '@/services/api'
 
 const route = useRoute()
+const router = useRouter()
 const isFullScreen = computed(() => route.meta.fullScreen)
 
 // State
@@ -77,9 +78,11 @@ const loadUser = () => {
 const handleLogout = async () => {
     try {
         await api.post('/auth/logout')
+    } catch (error) {
+        console.error("Logout error", error)
     } finally {
         localStorage.clear()
-        window.location.href = '/login'
+        router.push('/login')
     }
 }
 

@@ -1,4 +1,5 @@
 from flask import current_app
+from datetime import datetime
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.configs.extensions import db
@@ -15,10 +16,28 @@ class User(db.Model):
     qualification = db.Column(db.String(100))
     dob = db.Column(db.Date)
     isadmin = db.Column(db.Boolean, default=False, nullable=False)
+    role = db.Column(db.String(20), default='user', nullable=False) # 'admin', 'manager', 'user'
     is_blocked = db.Column(db.Boolean, default=False, nullable=False)
     is_verified = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     _gemini_api_key = db.Column("gemini_api_key", db.String(500))
+<<<<<<< HEAD
     role = db.Column(db.String(50), default="student", nullable=False)
+=======
+    
+    # Profile Enhancements
+    bio = db.Column(db.String(500))
+    profile_picture = db.Column(db.String(255))
+    social_github = db.Column(db.String(255))
+    social_linkedin = db.Column(db.String(255))
+    social_instagram = db.Column(db.String(255))
+
+    @property
+    def email_domain(self):
+        if not self.email or '@' not in self.email:
+            return None
+        return self.email.split('@')[-1]
+>>>>>>> b09c533b975865b712761b46f2a22f453b8bd1d9
 
     # Relationships
     scores = db.relationship("Scores", back_populates="user", cascade="all, delete-orphan")
@@ -68,7 +87,7 @@ class User(db.Model):
 
     @staticmethod
     def format_email(email):
-        return email.lower()
+        return email.strip().lower()
 
     def get_token(self, salt='email-confirm', expires_sec=1800):
         s = Serializer(current_app.config['SECRET_KEY'])

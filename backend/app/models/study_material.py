@@ -13,6 +13,11 @@ class StudyMaterial(db.Model):
     chapter_id = db.Column(db.Integer, db.ForeignKey('chapter.id'), nullable=True) # Optional chapter
     quiz_name = db.Column(db.String(150), nullable=True) # Optional quiz name
     
+    # New fields for PDFs and Links
+    material_type = db.Column(db.String(50), default='text') # 'text', 'pdf', 'link'
+    file_path = db.Column(db.String(500), nullable=True)     # For PDFs
+    link_url = db.Column(db.String(500), nullable=True)      # For external links
+    
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

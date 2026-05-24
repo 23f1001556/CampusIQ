@@ -95,7 +95,9 @@ const handleRegister = async () => {
         confirmPassword.value = ''
 
     } catch (err) {
-        console.error(err)
+        console.error("Registration Error FULL OBJECT:", err)
+        console.log("Registration Error Response:", err.response)
+
         error.value = err.response?.data?.message || 'Registration failed. Please try again.'
     } finally {
         isLoading.value = false

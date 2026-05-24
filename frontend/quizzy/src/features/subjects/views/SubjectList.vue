@@ -205,12 +205,13 @@ const handleSubmit = async () => {
 
 const confirmDelete = async (subject) => {
     if (!confirm(`Are you sure you want to delete "${subject.name}"?`)) return
+    if (!confirm(`This action cannot be undone and will delete all chapters and quizzes inside. Are you absolutely sure?`)) return
 
     try {
         await api.delete(`/subjects/deletesubject/${subject.id}`)
         fetchSubjects()
     } catch (error) {
-        alert(error.response?.data?.message || 'Delete failed')
+        console.error('Delete failed', error)
     }
     closeMenu()
 }
@@ -601,5 +602,24 @@ onMounted(() => {
     cursor: pointer;
     font-weight: 500;
     padding: 0.75rem 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .header-actions {
+        flex-direction: column-reverse;
+        /* Button on top, Search below */
+        width: 100%;
+        align-items: stretch;
+        /* Stretch children to full width */
+    }
+
+    .search-wrapper {
+        width: 100%;
+    }
+
+    .btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
 }
 </style>

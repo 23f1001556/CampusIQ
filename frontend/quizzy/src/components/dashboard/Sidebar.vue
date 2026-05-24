@@ -61,11 +61,12 @@ const handleNavClick = () => {
 }
 
 const links = computed(() => {
-    const isAdmin = props.user?.isadmin
+    const isStaff = props.user?.role === 'admin' || props.user?.role === 'manager'
+    const isAdmin = props.user?.role === 'admin' || props.user?.is_admin || props.user?.isadmin
 
-    return [
+    const allLinks = [
         {
-            path: isAdmin ? '/dashboard/admin' : '/dashboard',
+            path: isAdmin ? '/dashboard/admin' : (props.user?.role === 'manager' ? '/dashboard/manager' : '/dashboard'),
             text: 'Dashboard',
             icon: '📊',
             exact: true
@@ -74,8 +75,27 @@ const links = computed(() => {
         { path: '/dashboard/subjects', text: 'Subjects', icon: '📚' },
         { path: '/dashboard/leaderboard', text: 'Leaderboard', icon: '🏆' },
         { path: '/dashboard/mock-quizzes', text: 'Graded Quizzes', icon: '🎯' },
+        { path: '/dashboard/institute', text: 'Institute', icon: '🏛️' },
         { path: '/dashboard/ai-hub', text: 'AI Hub', icon: '🤖' }
     ]
+
+    let filteredLinks = allLinks
+
+    if (isAdmin) {
+        // Rename 'Subjects' to 'Files' for Admins
+        filteredLinks = filteredLinks.map(l => l.text === 'Subjects' ? { ...l, text: 'Files' } : l)
+    }
+
+    // Simplified Filtering:
+    // Institute link only visible for 'user' (Student)
+    filteredLinks = filteredLinks.filter(l => {
+        if (l.text === 'Institute') {
+            return props.user?.role === 'user'
+        }
+        return true
+    })
+
+    return filteredLinks
 })
 </script>
 
@@ -318,6 +338,7 @@ const links = computed(() => {
 }
 
 /* Mobile Styles */
+/* Mobile Styles */
 .sidebar.mobile {
     position: fixed;
     border-right: none;
@@ -326,9 +347,23 @@ const links = computed(() => {
     bottom: 0;
     transform: translateX(-100%);
     box-shadow: 8px 0 32px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    /* Ensure high z-index on mobile */
+    width: 280px;
+    /* Slightly wider on mobile for touch targets */
 }
 
 .sidebar.mobile.open {
     transform: translateX(0);
+}
+
+/* Ensure Logo is visible on mobile inside sidebar */
+.sidebar.mobile .logo-container {
+    display: flex;
+}
+
+/* Hide desktop toggle on mobile, parent component should handle hamburger */
+.sidebar.mobile .attr-toggle-btn {
+    display: none;
 }
 </style>

@@ -37,9 +37,14 @@
                         </td>
                         <td>{{ user.email }}</td>
                         <td>
-                            <span class="role-badge" :class="{ admin: user.isadmin || user.id === 1 }">
-                                {{ (user.isadmin || user.id === 1) ? 'Admin' : 'User' }}
-                            </span>
+                            <select :value="user.role" @change="handleRoleChangeRequest(user, $event.target.value)"
+                                class="role-select"
+                                :disabled="user.id === currentUser?.id || (!currentUser?.isadmin && user.role === 'admin')"
+                                :class="{ admin: user.role === 'admin', manager: user.role === 'manager', disabled: user.id === currentUser?.id || (!currentUser?.isadmin && user.role === 'admin') }">
+                                <option value="admin" v-if="currentUser?.isadmin">Admin</option>
+                                <option value="manager">Manager</option>
+                                <option value="user">User</option>
+                            </select>
                         </td>
                         <td>
                             <span class="status-badge" :class="{ blocked: user.is_blocked }">
@@ -50,14 +55,17 @@
                             <div class="action-buttons">
                                 <button class="btn-icon view-btn" @click="viewScores(user)"
                                     title="View Scores">📊</button>
-                                <button v-if="!user.isadmin && user.id !== 1" class="btn-icon block-btn"
-                                    :class="{ active: user.is_blocked }"
+                                <button
+                                    v-if="!user.isadmin && (currentUser?.role === 'admin' || (currentUser?.role === 'manager' && user.role === 'user'))"
+                                    class="btn-icon block-btn" :class="{ active: user.is_blocked }"
                                     @click="confirmAction(user, user.is_blocked ? 'unblock' : 'block')"
                                     :title="user.is_blocked ? 'Unblock User' : 'Block User'">
                                     {{ user.is_blocked ? '🔓' : '🚫' }}
                                 </button>
-                                <button v-if="!user.isadmin && user.id !== 1" class="btn-icon delete-btn"
-                                    @click="confirmAction(user, 'delete')" title="Delete User">🗑️</button>
+                                <button
+                                    v-if="!user.isadmin && (currentUser?.role === 'admin' || (currentUser?.role === 'manager' && user.role === 'user'))"
+                                    class="btn-icon delete-btn" @click="confirmAction(user, 'delete')"
+                                    title="Delete User">🗑️</button>
                             </div>
                         </td>
                     </tr>
@@ -137,12 +145,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import api from '@/services/api';
+
+const props = defineProps({
+    initialSearch: {
+        type: String,
+        default: ''
+    }
+});
 
 const users = ref([]);
 const loading = ref(true);
-const searchQuery = ref('');
+const searchQuery = ref(props.initialSearch);
+const currentUser = ref(JSON.parse(localStorage.getItem('user') || '{}'));
+
+watch(() => props.initialSearch, (newVal) => {
+    searchQuery.value = newVal;
+});
 
 // Score Viewing
 const selectedUser = ref(null);
@@ -156,6 +176,7 @@ const targetUser = ref(null);
 const adminPassword = ref('');
 const passwordError = ref('');
 const executing = ref(false);
+const pendingRole = ref('');
 
 const fetchUsers = async () => {
     try {
@@ -202,8 +223,17 @@ const resetConfirmation = () => {
     confirmationStep.value = 0;
     actionType.value = '';
     targetUser.value = null;
+    pendingRole.value = '';
     adminPassword.value = '';
     passwordError.value = '';
+};
+
+const handleRoleChangeRequest = (user, newRole) => {
+    if (user.role === newRole) return;
+    targetUser.value = user;
+    pendingRole.value = newRole;
+    actionType.value = `change role to ${newRole}`;
+    confirmationStep.value = 1;
 };
 
 const executeAction = async () => {
@@ -215,7 +245,9 @@ const executeAction = async () => {
 
         if (verifyRes.data.verified) {
             // 2. Perform Action
-            if (actionType.value === 'block' || actionType.value === 'unblock') {
+            if (actionType.value.startsWith('change role')) {
+                await api.post(`/users/update_role/${targetUser.value.id}`, { role: pendingRole.value });
+            } else if (actionType.value === 'block' || actionType.value === 'unblock') {
                 await api.post(`/users/blockuser/${targetUser.value.id}`);
             } else if (actionType.value === 'delete') {
                 await api.delete(`/users/deleteuser/${targetUser.value.id}`);
@@ -224,7 +256,7 @@ const executeAction = async () => {
             // Refresh list
             await fetchUsers();
             resetConfirmation();
-            alert(`User ${actionType.value}ed successfully.`);
+            alert(`Action completed successfully.`);
         }
     } catch (e) {
         if (e.response?.status === 401) {
@@ -236,6 +268,7 @@ const executeAction = async () => {
         executing.value = false;
     }
 };
+
 
 const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString(undefined, {
@@ -261,11 +294,19 @@ onMounted(fetchUsers);
 
 .management-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     margin-bottom: 2rem;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.search-box {
+    width: 100%;
+}
+
+.search-input {
+    width: 100%;
+    /* Keep other styles same */
 }
 
 .management-header h2 {
@@ -339,9 +380,39 @@ onMounted(fetchUsers);
     color: #22c55e;
 }
 
-.role-badge.admin {
+.role-badge.admin,
+.role-select.admin {
     background: rgba(99, 102, 241, 0.1);
     color: #6366f1;
+}
+
+.role-select.manager {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.role-select {
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.role-select:hover:not(:disabled) {
+    border-color: var(--primary-color);
+}
+
+.role-select.disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
+    appearance: none;
+    /* Hide dropdown arrow for disabled selector */
+    pointer-events: none;
 }
 
 .status-badge {

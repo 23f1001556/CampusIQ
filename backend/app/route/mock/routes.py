@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from app.auth.decors import login_required, admin_required
+from app.auth.decors import login_required, admin_required, staff_required
 from app.models.mock_quiz import MockQuiz, MockQuestion, MockAttempt
 from app.configs.extensions import db
 from datetime import datetime
@@ -11,7 +11,7 @@ mock_bp = Blueprint("mock", __name__, url_prefix="/mock")
 
 @mock_bp.route("/create", methods=["POST"])
 @login_required
-@admin_required
+@staff_required
 def create_mock_quiz():
     try:
         data = request.get_json()
@@ -49,7 +49,7 @@ def create_mock_quiz():
 
 @mock_bp.route("/add_question", methods=["POST"])
 @login_required
-@admin_required
+@staff_required
 def add_mock_question():
     try:
         data = request.get_json()
@@ -86,7 +86,7 @@ def add_mock_question():
 
 @mock_bp.route("/publish/<int:id>", methods=["POST"])
 @login_required
-@admin_required
+@staff_required
 def publish_results(id):
     try:
         mock_quiz = MockQuiz.query.get(id)
