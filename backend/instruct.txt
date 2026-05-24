@@ -10,3 +10,6 @@ Password@123
 
 sidhant221003003085@technoindiaeducation.com
 Sidhant@123
+
+
+ssh -i "C:\Users\sidha\Downloads\ssh-key-2026-05-15.key" ubuntu@161.118.163.147       
