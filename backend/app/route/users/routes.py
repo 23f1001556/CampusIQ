@@ -7,6 +7,11 @@ from app.auth.decors import protect_super_admin, login_required, admin_required,
 
 users_bp = Blueprint("users", __name__, url_prefix="/users")
 
+@users_bp.route("/", methods=["GET"])
+@users_bp.route("", methods=["GET"])
+def users_index():
+    return jsonify({"message": "Users API endpoint"}), 200
+
 @users_bp.route("/getusers", methods=["GET"])
 @login_required
 @staff_required
