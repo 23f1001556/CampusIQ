@@ -16,11 +16,8 @@ class BaseConfig:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     
     # Celery
-    CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
-    RESULT_BACKEND = os.getenv("RESULT_BACKEND", "redis://localhost:6379/0")
-    
-    # CORS
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+    CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://161.118.163.147:6379/0")
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "https://quizv2-tau.vercel.app,http://161.118.163.147,http://localhost:5173,http://localhost:3000").split(",")
 
 class DevelopmentConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = os.getenv("POSTGRESDB_URL")
@@ -34,9 +31,7 @@ class DevelopmentConfig(BaseConfig):
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER","sidhant")
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER","sidhant")
-    MAIL_DEBUG = False
-    
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "https://quizv2-tau.vercel.app,http://161.118.163.147,http://localhost:5173,http://localhost:3000").split(",")
 
 class ProductionConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL"))
