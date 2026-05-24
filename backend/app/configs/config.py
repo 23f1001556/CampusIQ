@@ -18,11 +18,10 @@ def get_cors_origins():
     return [o.strip() if o.strip().startswith("http") else f"https://{o.strip()}" for o in origins]
 
 class BaseConfig:
-<<<<<<< HEAD
     SQLALCHEMY_DATABASE_URI = os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL", "sqlite:///site.db"))
-=======
+
     SQLALCHEMY_DATABASE_URI = fix_database_uri(os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL", "sqlite:///site.db")))
->>>>>>> b09c533b975865b712761b46f2a22f453b8bd1d9
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
     SECRET_KEY = os.getenv("SECRET_KEY")
@@ -35,23 +34,23 @@ class BaseConfig:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     
     # Celery
-<<<<<<< HEAD
+
     CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://161.118.163.147:6379/0")
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "https://quizv2-tau.vercel.app,http://161.118.163.147,http://localhost:5173,http://localhost:3000").split(",")
-=======
+
     CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
     RESULT_BACKEND = os.getenv("RESULT_BACKEND", "redis://localhost:6379/0")
     
     # CORS
     CORS_ORIGINS = get_cors_origins()
->>>>>>> b09c533b975865b712761b46f2a22f453b8bd1d9
+
 
 class DevelopmentConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = fix_database_uri(os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL", "sqlite:///local.db")))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     #mailing
-<<<<<<< HEAD
+
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
@@ -64,7 +63,7 @@ class DevelopmentConfig(BaseConfig):
 class ProductionConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL"))
     DEBUG = False
-=======
+
     MAIL_DEBUG = False
     CORS_ORIGINS = get_cors_origins()
 
@@ -72,4 +71,4 @@ class ProductionConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = fix_database_uri(os.getenv("POSTGRESDB_URL", os.getenv("DATABASE_URL")))
     DEBUG = False
     CORS_ORIGINS = get_cors_origins()
->>>>>>> b09c533b975865b712761b46f2a22f453b8bd1d9
+

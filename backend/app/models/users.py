@@ -21,23 +21,7 @@ class User(db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     _gemini_api_key = db.Column("gemini_api_key", db.String(500))
-<<<<<<< HEAD
     role = db.Column(db.String(50), default="student", nullable=False)
-=======
-    
-    # Profile Enhancements
-    bio = db.Column(db.String(500))
-    profile_picture = db.Column(db.String(255))
-    social_github = db.Column(db.String(255))
-    social_linkedin = db.Column(db.String(255))
-    social_instagram = db.Column(db.String(255))
-
-    @property
-    def email_domain(self):
-        if not self.email or '@' not in self.email:
-            return None
-        return self.email.split('@')[-1]
->>>>>>> b09c533b975865b712761b46f2a22f453b8bd1d9
 
     # Relationships
     scores = db.relationship("Scores", back_populates="user", cascade="all, delete-orphan")
