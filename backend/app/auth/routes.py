@@ -42,10 +42,9 @@ def forgot_password():
             return jsonify({"message": "User not found"}), 404
 
         token = user.get_token(salt='password-reset')
-        # Assuming Frontend runs on localhost:5173 
         # Ideally this URL should be in config
-        frontend_url = "http://localhost:5173/reset-password" 
-        reset_link = f"{frontend_url}/{token}"
+        frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173").rstrip('/')
+        reset_link = f"{frontend_url}/reset-password/{token}"
 
         send_reset_password_email.delay(email, reset_link)
 
@@ -171,8 +170,8 @@ def register():
         }
         token = User.generate_registration_token(reg_data)
 
-        frontend_url = "http://localhost:5173/verify-email"
-        verify_link = f"{frontend_url}/{token}"
+        frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173").rstrip('/')
+        verify_link = f"{frontend_url}/verify-email/{token}"
 
         try:
             msg = Message(

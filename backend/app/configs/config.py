@@ -43,6 +43,8 @@ class BaseConfig:
     
     # CORS
     CORS_ORIGINS = get_cors_origins()
+    
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "https://quizv2-tau.vercel.app")
 
 
 class DevelopmentConfig(BaseConfig):
